@@ -52,10 +52,11 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <div class="portal-profile-menu">
 <button class="portal-profile-btn" id="portalProfileToggle" type="button" aria-expanded="false" aria-controls="portalProfileLinks" aria-label="Account menu"><img id="navProfileImage" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile picture"><span><strong id="sideName"><?php echo htmlspecialchars($userName); ?></strong><small><?php echo htmlspecialchars($portalRole); ?></small></span><i class="fa-solid fa-chevron-down"></i></button>
 <div class="portal-profile-dropdown" id="portalProfileLinks" hidden>
-<button type="button" data-go="profile"><i class="fa-solid fa-user"></i> Profile</button>
-<button type="button" data-prism-tour>Quick Tour</button>
-<button type="button" data-prism-guide>Navigation Guide</button>
-    <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+<button type="button" data-go="profile"><i class="fa-regular fa-user" aria-hidden="true"></i> My account</button>
+<a href="account.php#activity"><i class="fa-solid fa-list" aria-hidden="true"></i> Activity logs</a>
+<a href="help_support.php"><i class="fa-regular fa-circle-question" aria-hidden="true"></i> Help &amp; Support</a>
+<div class="prism-account-divider" role="separator"></div>
+<a class="prism-account-logout" href="logout.php"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Log out</a>
 </div>
 </div>
 </div>

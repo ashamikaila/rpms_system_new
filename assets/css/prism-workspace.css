@@ -160,9 +160,14 @@ body.prism-workspace .portal-profile-btn strong { font-size:var(--prism-font-lab
 body.prism-workspace .portal-profile-btn small { font-size:var(--prism-font-profile-meta); color:var(--prism-muted); }
 body.prism-workspace .portal-profile-btn > i { font-size:9px; }
 body.prism-workspace .prism-account-menu { position:relative; flex-shrink:0; }
-body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) { position:absolute; top:calc(100% + 8px); right:0; z-index:1300; display:grid; width:190px; max-width:calc(100vw - 32px); padding:7px; border:1px solid var(--prism-border); border-radius:12px; color:var(--prism-text); background:var(--prism-card); box-shadow:0 12px 32px #10113025; }
-body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) :is(a,button) { min-height:42px; padding:10px 12px; color:var(--prism-text); border-radius:7px; font-size:var(--prism-font-body); text-decoration:none; }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) { position:absolute; top:calc(100% + 8px); right:0; z-index:1300; display:grid; width:228px; max-width:calc(100vw - 32px); padding:7px; border:1px solid var(--prism-border); border-radius:16px; color:var(--prism-text); background:var(--prism-card); box-shadow:0 12px 32px #10113025; }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) :is(a,button) { min-height:48px; padding:10px 12px; color:var(--prism-text); border-radius:7px; font-size:var(--prism-font-body); text-decoration:none; }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) :is(a,button) { display:flex; align-items:center; gap:11px; }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) i { width:16px; color:var(--prism-text); text-align:center; }
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) :is(a,button):hover { background:var(--prism-bg); }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) .prism-account-divider { height:0; margin:5px 7px; border-top:1px solid var(--prism-border); }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) .prism-account-logout,
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) .prism-account-logout i { color:var(--prism-danger-fg); }
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown,.portal-nav-links)[hidden] { display:none; }
 body.prism-workspace .prism-sidebar > .prism-account-menu { margin-top:12px; }
 body.portal-shell :is(.welcome-card,.prism-workspace-hero) { display:flex; justify-content:space-between; align-items:center; gap:24px; padding:30px 32px; margin-bottom:24px; border:0; border-radius:18px; background:linear-gradient(112deg,#0c0e3f 0%,#64175f 65%,#bd126d 100%); color:#fff; }

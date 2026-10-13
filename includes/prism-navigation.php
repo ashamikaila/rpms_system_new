@@ -30,7 +30,7 @@ if ($authUser['role'] === 'adviser'):
 <a class="portal-notification" href="admin_notifications.php" aria-label="Notifications" title="Notifications" <?= ($prismCurrentPage ?? '') === 'admin_notifications.php' ? 'aria-current="page"' : '' ?>><i class="fa-solid fa-bell" aria-hidden="true"></i></a>
 <div class="prism-account-menu">
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Adviser account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>Research Adviser</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
-<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php" <?= ($prismCurrentPage ?? '') === 'account.php' ? 'aria-current="page"' : '' ?>>My account</a><a href="account.php#activity">Activity logs</a><a href="help_support.php">Help &amp; Support</a><a href="logout.php">Log out</a></div>
+<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php" <?= ($prismCurrentPage ?? '') === 'account.php' ? 'aria-current="page"' : '' ?>><i class="fa-regular fa-user" aria-hidden="true"></i>My account</a><a href="account.php#activity"><i class="fa-solid fa-list" aria-hidden="true"></i>Activity logs</a><a href="help_support.php"><i class="fa-regular fa-circle-question" aria-hidden="true"></i>Help &amp; Support</a><div class="prism-account-divider" role="separator"></div><a class="prism-account-logout" href="logout.php"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>Log out</a></div>
 </div>
 </div>
 <?php else:
@@ -85,7 +85,7 @@ $prismNavGroups = [
 </nav>
 <div class="prism-account-menu" data-prism-admin-account>
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Admin account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>RPMS Admin</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
-<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php">My account</a><a href="account.php#activity">Activity logs</a><a href="help_support.php">Help &amp; Support</a><a href="logout.php">Log Out</a></div>
+<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php"><i class="fa-regular fa-user" aria-hidden="true"></i>My account</a><a href="account.php#activity"><i class="fa-solid fa-list" aria-hidden="true"></i>Activity logs</a><a href="help_support.php"><i class="fa-regular fa-circle-question" aria-hidden="true"></i>Help &amp; Support</a><div class="prism-account-divider" role="separator"></div><a class="prism-account-logout" href="logout.php"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>Log out</a></div>
 </div>
 <?php endif; ?>
 <template data-prism-guide-role="<?= $prismNavEscape($authUser['role']) ?>"><button type="button" data-prism-tour>Quick Tour</button><button type="button" data-prism-guide>Navigation Guide</button></template>
