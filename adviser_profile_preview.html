@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Complete your Adviser profile | PRISM UI preview</title>
+    <link rel="icon" type="image/png" href="assets/images/prismicon.png">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/batch11-public.css">
+    <link rel="stylesheet" href="assets/css/onboarding.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/prism-tokens.css">
+    <link rel="stylesheet" href="assets/css/prism-components.css">
+    <link rel="stylesheet" href="assets/css/complete-profile-ui.css">
+    <script>
+        try {
+            if (localStorage.getItem('prismTheme') === 'dark') {
+                document.documentElement.classList.add('dark-theme');
+            }
+        } catch (_) {}
+    </script>
+</head>
+<body class="unified-login batch11-login onboarding-page profile-page" data-onboarding-role="adviser">
+<div class="background-overlay">
+    <section class="login-campus" aria-labelledby="loginCampusTitle">
+        <a class="login-campus-brand" href="index.php" aria-label="PRISM public home">
+            <img src="assets/images/prismlogo1.png" alt="PRISM">
+        </a>
+        <div class="login-campus-copy">
+            <p class="public-eyebrow">IERB PROGRESS &amp; REPORTING SYSTEM</p>
+            <h2 id="loginCampusTitle">Welcome to PRISM!</h2>
+            <p>Follow your research through ethics review, feedback and RPMS submission, all in one place.</p>
+        </div>
+        <p class="login-campus-institution">
+            <strong>Centro Escolar University &ndash; Malolos Campus</strong><br>
+            Research Planning and Monitoring Section
+        </p>
+    </section>
+
+    <div class="login-form-column">
+        <main class="login-card onboarding-card setup-card profile-card">
+            <div class="wiz-progress" aria-live="polite">
+                <span id="wizLabel">Step 1 of 1</span>
+                <span class="wiz-bar" aria-hidden="true"><i id="wizFill"></i></span>
+            </div>
+            <h1 id="profileTitle">Complete your Adviser profile</h1>
+            <p class="profile-lead" id="wizLead">Your profile is Pending. Complete these details to use the workspace.</p>
+
+            <form id="completeProfileForm" aria-labelledby="profileTitle" onsubmit="return false;" data-steps="1">
+                <section class="wiz-panel" data-step="1">
+                    <p class="setup-notice setup-email">
+                        <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                        <span>Invited email: <strong class="invited-email">faculty@example.edu.ph</strong></span>
+                    </p>
+                    <label for="previewName">Full name</label>
+                    <input id="previewName" value="Alex Santos" autocomplete="name" maxlength="190" required>
+
+                    <label for="previewEmployeeId">Employee ID</label>
+                    <input id="previewEmployeeId" value="EMP-00123" maxlength="100" aria-describedby="identityPolicy" required>
+                    <p id="identityPolicy" class="profile-hint">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span>After completion, ID corrections require Admin review.</span>
+                    </p>
+
+                    <label for="previewDepartment">Academic unit / Department</label>
+                    <select id="previewDepartment" required>
+                        <option value="">Choose an academic unit</option>
+                        <option>Accountancy / Management / Technology</option>
+                        <option selected>Education / Liberal Arts / Science</option>
+                        <option>International Hospitality Management / Tourism</option>
+                        <option>Dentistry</option>
+                        <option>Nursing</option>
+                        <option>Pharmacy / Medical Technology</option>
+                        <option>Optometry</option>
+                    </select>
+                </section>
+                <div class="wiz-actions">
+                    <button type="button" class="wiz-back-icon" id="wizBack" aria-label="Back" title="Back" hidden>
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="setup-btn" id="wizNext" hidden>Continue</button>
+                    <button type="submit" class="setup-btn" id="wizSubmit">Complete profile</button>
+                </div>
+            </form>
+            <p class="profile-help"><a href="help_support.php">Help &amp; Support</a></p>
+        </main>
+        <footer class="login-legal-footer" aria-label="Legal information">
+            <a href="privacy.php">Privacy Policy</a>
+            <a href="terms.php">Terms of Service</a>
+            <a href="logout.php">Sign out</a>
+        </footer>
+    </div>
+</div>
+<script src="assets/js/complete-profile.js"></script>
+</body>
+</html>

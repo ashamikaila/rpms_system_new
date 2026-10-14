@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Complete your profile | PRISM UI preview</title>
+    <link rel="icon" type="image/png" href="assets/images/prismicon.png">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/batch11-public.css">
+    <link rel="stylesheet" href="assets/css/onboarding.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/prism-tokens.css">
+    <link rel="stylesheet" href="assets/css/prism-components.css">
+    <link rel="stylesheet" href="assets/css/complete-profile-ui.css">
+    <script>
+        try {
+            if (localStorage.getItem('prismTheme') === 'dark') {
+                document.documentElement.classList.add('dark-theme');
+            }
+        } catch (_) {}
+    </script>
+</head>
+<body class="unified-login batch11-login onboarding-page profile-page" data-onboarding-role="student">
+<div class="background-overlay">
+    <section class="login-campus" aria-labelledby="loginCampusTitle">
+        <a class="login-campus-brand" href="index.php" aria-label="PRISM public home">
+            <img src="assets/images/prismlogo1.png" alt="PRISM">
+        </a>
+        <div class="login-campus-copy">
+            <p class="public-eyebrow">IERB PROGRESS &amp; REPORTING SYSTEM</p>
+            <h2 id="loginCampusTitle">Welcome to PRISM!</h2>
+            <p>Follow your research through ethics review, feedback and RPMS submission, all in one place.</p>
+        </div>
+        <p class="login-campus-institution">
+            <strong>Centro Escolar University &ndash; Malolos Campus</strong><br>
+            Research Planning and Monitoring Section
+        </p>
+    </section>
+
+    <div class="login-form-column">
+        <main class="login-card onboarding-card setup-card profile-card">
+            <div class="wiz-progress" aria-live="polite">
+                <span id="wizLabel">Step 1 of 2</span>
+                <span class="wiz-bar" aria-hidden="true"><i id="wizFill"></i></span>
+            </div>
+            <h1 id="profileTitle">Complete your PRISM profile</h1>
+            <p class="profile-lead" id="wizLead">Your profile is Pending. Complete these details to use the workspace.</p>
+
+            <form id="completeProfileForm" aria-labelledby="profileTitle" onsubmit="return false;" data-steps="2">
+                <section class="wiz-panel" data-step="1">
+                    <p class="setup-notice setup-email">
+                        <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                        <span>Invited email: <strong class="invited-email">student@example.edu.ph</strong></span>
+                    </p>
+                    <label for="previewName">Full name</label>
+                    <input id="previewName" value="Alex Santos" autocomplete="name" maxlength="190" required>
+
+                    <label for="previewStudentId">Student ID</label>
+                    <input id="previewStudentId" value="2026-00123" maxlength="100" aria-describedby="identityPolicy" required>
+                    <p id="identityPolicy" class="profile-hint">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span>After completion, ID corrections require Admin review.</span>
+                    </p>
+                </section>
+                <section class="wiz-panel" data-step="2" hidden>
+                    <fieldset id="onboardingAcademics">
+                        <legend class="sr-only">Academic information (required)</legend>
+                        <div class="academic-fields-grid">
+                            <label for="previewUnit">Academic unit
+                                <select id="previewUnit" data-academic="unit" required></select>
+                            </label>
+                            <label for="previewProgram">Program
+                                <select id="previewProgram" data-academic="program" required></select>
+                            </label>
+                            <label for="previewYear">Year level
+                                <select id="previewYear" data-academic="year" required></select>
+                            </label>
+                            <label for="previewAcademicYear">Academic year
+                                <select id="previewAcademicYear" data-academic="academic-year" required></select>
+                            </label>
+                        </div>
+                        <p class="profile-hint" id="previewAcademicSummary" data-academic="summary" aria-live="polite"></p>
+                    </fieldset>
+
+                    <label for="previewResearch">Research title <em class="opt">optional</em></label>
+                    <input id="previewResearch" placeholder="You can add this later" maxlength="255">
+                    <p class="profile-hint">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span>Adviser and research-group assignments are managed by staff.</span>
+                    </p>
+                </section>
+                <div class="wiz-actions">
+                    <button type="button" class="wiz-back-icon" id="wizBack" aria-label="Back to personal details" title="Back to personal details" hidden>
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="setup-btn" id="wizNext">Continue</button>
+                    <button type="submit" class="setup-btn" id="wizSubmit" hidden>Complete profile</button>
+                </div>
+            </form>
+            <p class="profile-help"><a href="help_support.php">Help &amp; Support</a></p>
+        </main>
+        <footer class="login-legal-footer" aria-label="Legal information">
+            <a href="privacy.php">Privacy Policy</a>
+            <a href="terms.php">Terms of Service</a>
+            <a href="logout.php">Sign out</a>
+        </footer>
+    </div>
+</div>
+<script>
+(() => {
+    const units = {
+        amt: 'Accountancy / Management / Technology',
+        elas: 'Education / Liberal Arts / Science',
+        ihtm: 'International Hospitality Management / Tourism',
+        dentistry: 'Dentistry',
+        nursing: 'Nursing',
+        pmt: 'Pharmacy / Medical Technology',
+        optometry: 'Optometry'
+    };
+    const programs = {
+        bsa: ['BS in Accountancy', 'amt', 4],
+        bsit: ['BS in Information Technology', 'amt', 4],
+        bsba_im: ['BS in Business Administration Major in International Management', 'amt', 4],
+        ba_comm_a: ['BA in Communication and Media Curriculum A', 'elas', 4],
+        ba_comm_b: ['BA in Communication and Media with 21 units of Education Curriculum B', 'elas', 4],
+        bs_psychology: ['BS in Psychology', 'elas', 4],
+        bs_psychology_education: ['BS in Psychology (with 18 units of Education)', 'elas', 4],
+        bsned: ['Bachelor of Special Needs Education', 'elas', 4],
+        bsned_early_childhood: ['Bachelor of Special Needs Education Specialization in Early Childhood Education', 'elas', 4],
+        bsihm_cruise: ['BS in International Hospitality Management Specialization in Cruise and Integrated Resort Operations', 'ihtm', 4],
+        bsihm_hotel: ['BS in International Hospitality Management Specialization in Hotel, Restaurant and Culinary Operations', 'ihtm', 4],
+        bsittm: ['BS in International Tourism and Travel Management', 'ihtm', 4],
+        ddm: ['Doctor of Dental Medicine', 'dentistry', 6],
+        bsn: ['BS in Nursing', 'nursing', 4],
+        bsmt: ['BS in Medical Technology', 'pmt', 4],
+        bs_pharmacy: ['BS in Pharmacy (Four-Year Program) leading to BS in Clinical Pharmacy', 'pmt', 4],
+        bs_clinical_pharmacy: ['BS in Clinical Pharmacy (Five-Year Program) leading to Doctor of Pharmacy', 'pmt', 5],
+        doctor_optometry: ['Doctor of Optometry', 'optometry', 6],
+        mba_thesis: ['Master of Business Administration (Thesis Program)', null, null],
+        mba_non_thesis: ['Master of Business Administration (Non-Thesis)', null, null],
+        mba_tqm: ['Master of Business Administration (Total Quality Management)', null, null],
+        ms_psychology: ['Master of Science in Psychology', null, null]
+    };
+    const unit = document.getElementById('previewUnit');
+    const program = document.getElementById('previewProgram');
+    const year = document.getElementById('previewYear');
+    const academicYear = document.getElementById('previewAcademicYear');
+    const summary = document.getElementById('previewAcademicSummary');
+
+    function setOptions(select, items, placeholder, selected = '') {
+        select.replaceChildren(new Option(placeholder, ''));
+        items.forEach(([value, label]) => select.add(new Option(label, value)));
+        select.value = selected;
+    }
+
+    setOptions(unit, [
+        ...Object.entries(units),
+        ['__graduate__', 'Graduate programs (unit and year not configured)']
+    ], 'Choose an academic unit', 'amt');
+    setOptions(academicYear, [
+        ['2025-2026', '2025–2026'],
+        ['2026-2027', '2026–2027'],
+        ['2027-2028', '2027–2028']
+    ], 'Choose an academic year', '2026-2027');
+
+    function refreshPrograms(selected = '') {
+        const selectedUnit = unit.value === '__graduate__' ? null : unit.value;
+        const options = Object.entries(programs)
+            .filter(([, details]) => details[1] === selectedUnit)
+            .map(([key, details]) => [key, details[0]]);
+        setOptions(program, options, 'Choose a program', selected);
+        refreshYears();
+    }
+
+    function refreshYears(selected = '') {
+        const details = programs[program.value];
+        const isGraduate = details?.[1] === null;
+        setOptions(year, isGraduate ? [] : Array.from({length: details?.[2] || 0}, (_, index) => {
+            const number = index + 1;
+            const suffix = number === 1 ? 'st' : number === 2 ? 'nd' : number === 3 ? 'rd' : 'th';
+            return [`${number}${suffix} Year`, `${number}${suffix} Year`];
+        }), isGraduate ? 'Not configured for graduate programs' : 'Choose a year level', selected);
+        year.disabled = isGraduate;
+        updateSummary();
+    }
+
+    function updateSummary() {
+        const details = programs[program.value];
+        const values = [
+            details?.[0],
+            year.value || (details?.[1] === null ? 'Year level not configured' : ''),
+            academicYear.options[academicYear.selectedIndex]?.text
+        ].filter(Boolean);
+        summary.textContent = values.length ? values.join(' · ') : 'Select a program to see its available year levels.';
+    }
+
+    unit.addEventListener('change', () => refreshPrograms());
+    program.addEventListener('change', () => refreshYears());
+    year.addEventListener('change', updateSummary);
+    academicYear.addEventListener('change', updateSummary);
+    refreshPrograms('bsit');
+    refreshYears('2nd Year');
+})();
+</script>
+<script src="assets/js/complete-profile.js"></script>
+</body>
+</html>

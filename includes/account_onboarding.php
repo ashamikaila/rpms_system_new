@@ -305,5 +305,5 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
         if ($e instanceof PDOException && (int)($e->errorInfo[1]??0)===1062) throw new AccountLifecycleConflict('That institutional ID was claimed concurrently. Use your own unique ID or request Admin review.');
         throw $e;
     }
-    return ['ok'=>true,'redirect'=>$role==='student'?'student.php':'ierbprog.php'];
+    return ['ok'=>true,'redirect'=>$role==='student'?'student.php?welcome=1':'ierbprog.php'];
 }

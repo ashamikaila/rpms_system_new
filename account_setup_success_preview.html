@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Password set successfully | PRISM UI preview</title>
+    <script>
+        try {
+            if (localStorage.getItem('prismTheme') === 'dark') {
+                document.documentElement.classList.add('dark-theme');
+            }
+        } catch (_) {}
+    </script>
+    <link rel="icon" href="assets/images/prismicon.png">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/batch11-public.css">
+    <link rel="stylesheet" href="assets/css/onboarding.css">
+    <link rel="stylesheet" href="assets/css/prism-tokens.css">
+    <link rel="stylesheet" href="assets/css/prism-components.css">
+    <link rel="stylesheet" href="assets/css/account-setup-ui.css">
+</head>
+<body class="unified-login batch11-login account-setup-page">
+<div class="background-overlay">
+    <section class="login-campus" aria-labelledby="setupCampusTitle">
+        <a class="login-campus-brand" href="index.php" aria-label="PRISM public home">
+            <img src="assets/images/prismlogo1.png" alt="PRISM">
+        </a>
+        <div class="login-campus-copy">
+            <p class="public-eyebrow">IERB PROGRESS &amp; REPORTING SYSTEM</p>
+            <h2 id="setupCampusTitle">Welcome to PRISM!</h2>
+            <p>Your account was created from RPMS. One quick step and you can start tracking your research.</p>
+        </div>
+        <p class="login-campus-institution">
+            <strong>Centro Escolar University &ndash; Malolos Campus</strong><br>
+            Research Planning and Monitoring Section
+        </p>
+    </section>
+
+    <div class="login-form-column">
+        <section class="login-card setup-card setup-done" role="status" aria-labelledby="setupDoneTitle">
+            <div class="logo-container">
+                <img src="assets/images/prismlogo1.png" class="logo-main" alt="PRISM logo">
+            </div>
+            <ol class="setup-steps" aria-label="Setup steps">
+                <li class="is-complete"><b aria-label="Complete">&#10003;</b><span>Set password</span></li>
+                <li aria-current="step"><b>2</b><span>Sign in</span></li>
+                <li><b>3</b><span>Complete profile</span></li>
+            </ol>
+            <span class="setup-done-icon" aria-hidden="true">&#10003;</span>
+            <h1 id="setupDoneTitle">Password set successfully</h1>
+            <p>Your password is ready. Sign in with your invited email, then complete your profile.</p>
+            <a class="setup-btn" href="login.php">Continue to sign in</a>
+        </section>
+        <footer class="login-legal-footer" aria-label="Legal information">
+            <a href="privacy.php">Privacy Policy</a>
+            <a href="terms.php">Terms of Service</a>
+        </footer>
+    </div>
+</div>
+</body>
+</html>

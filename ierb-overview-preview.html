@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IERB Overview Preview</title>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <link rel="stylesheet" href="assets/css/prism-ui.css">
+    <link rel="stylesheet" href="assets/css/ierbprog.css">
+    <style>
+        body { background:#f7f4f8; }
+        .ierb-page { width:100%; max-width:1280px; margin:auto; padding:12px 16px; }
+        .stage-chart.is-empty { display:none; }
+    </style>
+</head>
+<body>
+<main class="ierb-page">
+    <section class="progress-overview" aria-labelledby="progressOverviewTitle">
+        <div class="overview-heading">
+            <div><span>IERB Progress</span><h2 id="progressOverviewTitle">Progress overview</h2></div>
+            <strong>4 students · Select a stage to filter the list</strong>
+        </div>
+        <div class="stage-chart" role="group" aria-label="Student counts by IERB stage">
+            <button class="stage-summary-card" type="button" aria-pressed="true">
+                <strong class="stage-summary-count">2</strong><span class="stage-summary-label">Protocol Submission</span>
+                <span class="stage-summary-track" aria-hidden="true"><span style="width:50%"></span></span>
+            </button>
+            <button class="stage-summary-card" type="button" aria-pressed="false">
+                <strong class="stage-summary-count">1</strong><span class="stage-summary-label">Initial Ethics Review</span>
+                <span class="stage-summary-track" aria-hidden="true"><span style="width:25%"></span></span>
+            </button>
+            <button class="stage-summary-card" type="button" aria-pressed="false">
+                <strong class="stage-summary-count">1</strong><span class="stage-summary-label">Revisions &amp; Resubmission</span>
+                <span class="stage-summary-track" aria-hidden="true"><span style="width:25%"></span></span>
+            </button>
+            <button class="stage-summary-card" type="button" aria-pressed="false">
+                <strong class="stage-summary-count">0</strong><span class="stage-summary-label">Certificate of Approval</span>
+                <span class="stage-summary-track" aria-hidden="true"><span style="width:0%"></span></span>
+            </button>
+            <button class="stage-summary-card" type="button" aria-pressed="false">
+                <strong class="stage-summary-count">0</strong><span class="stage-summary-label">Continuing Review / Monitoring</span>
+                <span class="stage-summary-track" aria-hidden="true"><span style="width:0%"></span></span>
+            </button>
+            <button class="stage-summary-card" type="button" aria-pressed="false">
+                <strong class="stage-summary-count">0</strong><span class="stage-summary-label">IERB Process Completed</span>
+                <span class="stage-summary-track" aria-hidden="true"><span style="width:0%"></span></span>
+            </button>
+        </div>
+    </section>
+</main>
+</body>
+</html>

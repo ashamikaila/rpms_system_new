@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Records Preview</title>
+    <link rel="stylesheet" href="assets/css/student-records.css">
+    <style>
+        :root {
+            --prism-border:#e6e3f3;
+            --prism-card:#fff;
+            --prism-text:#14103f;
+            --prism-muted:#5d5a85;
+            --prism-surface:#fff;
+            --prism-focus:#a10f61;
+        }
+        * { box-sizing:border-box; }
+        body { margin:0; font:14px/1.5 Montserrat,Arial,sans-serif; color:#14103f; }
+        .management-page { max-width:1280px; margin:0 auto; padding:24px; }
+        .topbar { margin-bottom:18px; }
+        .topbar h1 { margin:0; font-size:30px; font-weight:800; }
+        .topbar p { margin:2px 0 20px; color:#5d5a85; }
+        .management-controls { display:flex; flex-wrap:nowrap; align-items:center; gap:10px; }
+        .management-search { position:relative; display:flex; flex:1 1 auto; align-items:center; gap:10px; min-width:180px; height:46px; padding:0 14px; border:1px solid #e6e3f3; border-radius:12px; background:#fff; }
+        .management-search>i { color:#5d5a85; }
+        .management-search input { width:100%; min-width:0; height:44px; padding:0 86px 0 0; border:0; background:transparent; font:inherit; }
+        .student-search-shortcut { position:absolute; right:12px; display:grid; width:23px; height:24px; place-items:center; border:1px solid #e6e3f3; border-radius:6px; color:#77749a; }
+        .student-filter-action,.student-page-actions button,.student-page-actions a { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; height:46px; padding:0 16px; border:1px solid #e6e3f3; border-radius:12px; background:#fff; color:#14103f; font:700 13px Montserrat,Arial,sans-serif; white-space:nowrap; text-decoration:none; cursor:pointer; }
+        .student-page-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px; }
+        #addRecord { border-color:#a10f61; background:#a10f61; color:#fff; }
+        .student-toolbar-separator { width:1px; height:28px; background:#e6e3f3; }
+        .student-stage-filters { display:flex; gap:8px; margin:14px 0; overflow-x:auto; padding:2px 1px 6px; }
+        .prism-filter-pill { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 14px; border:1px solid #e6e3f3; border-radius:999px; background:#fff; color:#14103f; font:600 13px Montserrat,Arial,sans-serif; white-space:nowrap; }
+        .prism-filter-pill[aria-pressed=true] { border-color:#14103f; background:#14103f; color:#fff; }
+        .prism-filter-pill b { min-width:22px; padding:0 6px; border-radius:99px; background:#fbe8f2; color:#a10f61; font-size:11px; text-align:center; }
+        .prism-filter-pill[aria-pressed=true] b { background:#ffffff33; color:#fff; }
+        .management-card-head { padding:0 0 10px; }
+        .management-card-head h2 { display:none; }
+        .management-card-head p { margin:0; color:#5d5a85; font-size:13px; }
+        .management-table-wrap { overflow-x:auto; border:1px solid #e6e3f3; border-radius:18px; background:#fff; box-shadow:0 8px 24px #28145a0f; }
+        table { width:100%; min-width:760px; border-collapse:collapse; }
+        th { padding:12px 18px; border-bottom:1px solid #e6e3f3; background:#faf9fe; color:#5d5a85; font-size:12px; letter-spacing:.04em; text-align:left; text-transform:uppercase; }
+        td { padding:14px 18px; border-bottom:1px solid #e6e3f3; color:#29264f; }
+        tbody tr:last-child td { border-bottom:0; }
+        .student-name-layout { display:flex; align-items:center; gap:12px; min-width:210px; }
+        .student-avatar { display:grid; flex:0 0 36px; width:36px; height:36px; place-items:center; border-radius:50%; background:#fbe8f2; color:#a10f61; font-size:12px; font-weight:800; }
+        .student-name-copy { flex:1; min-width:0; }
+        .student-name-copy strong,.student-name-copy small,.student-group-name,.student-research-name { display:block; }
+        .student-name-copy small,.student-research-name { color:#77749a; font-size:12px; }
+        .student-name-layout .prism-action-trigger { width:34px; height:34px; border:1px solid #e6e3f3; border-radius:10px; background:#fff; font-size:18px; }
+        .stage-tag { display:inline-block; padding:3px 11px; border-radius:999px; background:#fbe8f2; color:#a10f61; font-size:12px; font-weight:700; white-space:nowrap; }
+        .prism-badge { display:inline-block; margin-left:4px; padding:3px 9px; border-radius:999px; background:#f2edf9; color:#54417e; font-size:11px; }
+        .prism-pagination { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+        .prism-pagination button { min-width:42px; height:42px; border:1px solid #e6e3f3; border-radius:12px; background:#fff; color:#5d5a85; font:600 13px Montserrat,Arial,sans-serif; }
+        .prism-pagination button[aria-current=page] { border-color:#a10f61; background:#a10f61; color:#fff; }
+        body.student-records-page .management-controls .student-filter-action { flex:0 0 40px; width:40px; min-width:40px; padding:0; }
+        body.student-records-page .student-stage-filters { flex-wrap:nowrap; overflow-x:auto; }
+        body.student-records-page .management-table-wrap { overflow-x:auto; border:1px solid #e6e3f3; border-radius:18px; background:#fff; box-shadow:0 8px 24px #28145a0f; }
+        body.student-records-page .management-table-wrap>table { display:table; width:100%; min-width:760px; border-collapse:collapse; background:#fff; }
+        body.student-records-page .management-table-wrap>table thead { display:table-header-group; }
+        body.student-records-page .management-table-wrap>table tbody { display:table-row-group; }
+        body.student-records-page .management-table-wrap>table tbody tr { display:table-row; background:#fff; }
+        body.student-records-page .management-table-wrap>table tbody td { display:table-cell; padding:14px 18px; border-bottom:1px solid #e6e3f3; }
+        @media(max-width:760px) {
+            .management-page { padding:18px 14px; }
+            .management-controls { flex-wrap:wrap; }
+            .management-search { flex-basis:100%; }
+            .student-toolbar-separator { display:none; }
+            .student-page-actions { margin-left:auto; }
+        }
+    </style>
+</head>
+<body class="student-records-page">
+<main class="management-page">
+    <header class="topbar">
+        <h1>Student Records</h1>
+        <p>Manage records, research groups, and adviser assignments.</p>
+    </header>
+    <section class="management-controls" aria-label="Student record tools">
+        <label class="management-search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true">⌕</i>
+            <input type="search" placeholder="Search name, ID, email or group" aria-label="Search student records">
+            <kbd class="student-search-shortcut">/</kbd>
+        </label>
+        <button class="student-filter-action" type="button" aria-label="Filters" title="Filters"><i aria-hidden="true">☷</i></button>
+        <span class="student-toolbar-separator" aria-hidden="true"></span>
+        <div class="student-page-actions" role="group" aria-label="Student record actions">
+            <button type="button" aria-label="Invite student"><i aria-hidden="true">✉</i> Invite student</button>
+            <button id="addRecord" type="button" aria-label="Add student"><i aria-hidden="true">＋</i> Add student</button>
+            <a href="#" aria-label="View archived accounts"><i aria-hidden="true">▣</i></a>
+        </div>
+    </section>
+    <nav class="student-stage-filters" aria-label="Filter by IERB stage">
+        <button class="prism-filter-pill" aria-pressed="true"><span>All</span><b>5</b></button>
+        <button class="prism-filter-pill" aria-pressed="false"><span>Protocol Submission</span><b>1</b></button>
+        <button class="prism-filter-pill" aria-pressed="false"><span>Initial Ethics Review</span><b>1</b></button>
+        <button class="prism-filter-pill" aria-pressed="false"><span>Revisions &amp; Resubmission</span><b>1</b></button>
+        <button class="prism-filter-pill" aria-pressed="false"><span>Certificate of Approval</span><b>1</b></button>
+        <button class="prism-filter-pill" aria-pressed="false"><span>Continuing Review / Monitoring</span><b>1</b></button>
+        <button class="prism-filter-pill" aria-pressed="false"><span>Completed - IERB Process Completed</span><b>0</b></button>
+    </nav>
+    <section class="management-card">
+        <header class="management-card-head"><div><h2>Student Records</h2><p>Showing 1–5 of 5 records</p></div></header>
+        <div class="management-table-wrap">
+            <table>
+                <thead><tr><th>Student</th><th>ID</th><th>Group</th><th>Adviser</th><th>IERB Stage</th></tr></thead>
+                <tbody>
+                    <tr><td><div class="student-name-layout"><span class="student-avatar">JD</span><span class="student-name-copy"><strong>Juan Dela Cruz</strong><small>juan@example.edu</small></span><button class="prism-action-trigger" aria-label="More student actions">…</button></div></td><td>2021-00123</td><td><span class="student-group-name">Group 4</span></td><td>Dr. Reyes</td><td><span class="stage-tag">Revisions &amp; Resubmission</span></td></tr>
+                    <tr><td><div class="student-name-layout"><span class="student-avatar">MS</span><span class="student-name-copy"><strong>Maria Santos</strong><small>maria@example.edu</small></span><button class="prism-action-trigger" aria-label="More student actions">…</button></div></td><td>2021-00456</td><td><span class="student-group-name">Group 2</span></td><td>Dr. Lim</td><td><span class="stage-tag">Protocol Submission</span></td></tr>
+                    <tr><td><div class="student-name-layout"><span class="student-avatar">PG</span><span class="student-name-copy"><strong>Paolo Garcia</strong><small>paolo@example.edu</small></span><button class="prism-action-trigger" aria-label="More student actions">…</button></div></td><td>2020-00987</td><td><span class="student-group-name">Group 4</span></td><td>Dr. Reyes</td><td><span class="stage-tag">Initial Ethics Review</span></td></tr>
+                    <tr><td><div class="student-name-layout"><span class="student-avatar">AR</span><span class="student-name-copy"><strong>Ana Ramos</strong><small>ana@example.edu</small></span><button class="prism-action-trigger" aria-label="More student actions">…</button></div></td><td>2020-00311</td><td><span class="student-group-name">Group 1</span></td><td>Dr. Lim</td><td><span class="stage-tag">Certificate of Approval</span></td></tr>
+                    <tr><td><div class="student-name-layout"><span class="student-avatar">CM</span><span class="student-name-copy"><strong>Carlo Mendoza</strong><small>carlo@example.edu</small></span><button class="prism-action-trigger" aria-label="More student actions">…</button></div></td><td>2019-00742</td><td><span class="student-group-name">Group 3</span></td><td>Dr. Reyes</td><td><span class="stage-tag">Continuing Review / Monitoring</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <nav class="prism-pagination" aria-label="Pagination">
+            <button type="button" disabled>Previous</button><button type="button" aria-current="page">1</button><button type="button">Next</button>
+        </nav>
+    </section>
+</main>
+</body>
+</html>

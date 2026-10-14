@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    const progressStageNames = ['Protocol Submission', 'Initial Ethics Review', 'Revisions & Resubmission', 'Certificate of Approval', 'Continuing Review / Monitoring', 'IERB Process Completed'];
     const stageLabels = window.PRISM_STAGE_LABELS || {};
     const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
     const $ = id => document.getElementById(id);
+    const documentUiPreview = new URLSearchParams(window.location.search).get('ui-preview') === '1';
     PrismUI.documentTypes.forEach(type => $('documentType').add(new Option(type, type)));
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = value => {
@@ -11,12 +13,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return date && Number.isFinite(date.getTime())
             ? date.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
     };
+    const recentAge = value => {
+        const date = value ? new Date(value) : null;
+        if (!date || !Number.isFinite(date.getTime())) return 'Date unavailable';
+        const today = new Date();
+        const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const uploadedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const days = Math.max(0, Math.floor((dayStart - uploadedDay) / 86400000));
+        return days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`;
+    };
 
     let myRecord = null;   // this student's IERB record (or null if none yet)
     let myDocuments = [], dashboardDocumentTotal = 0, documentHistory = {records:[],total:0,page:1};
-    const documentCount = document.createElement('p'); $('documentRows').closest('table').parentElement.insertAdjacentElement('beforebegin',documentCount);
+    const documentCount = $('studentDocumentCount');
     const documentSearch=$('studentDocumentSearch'),documentSort=$('studentDocumentSort');
-    const docPager = PrismUI.recordPager($('documentRows').closest('table').parentElement,documentCount,[$('documentFilter'),documentSearch,documentSort],refreshDocuments);
+    const docPager = PrismUI.recordPager($('studentDocumentList'),documentCount,[$('documentFilter'),documentSearch,documentSort],refreshDocuments);
+    const clearDocumentFilters = document.querySelector('.student-document-tools > .prism-btn');
+    if (clearDocumentFilters) {
+        clearDocumentFilters.classList.add('student-document-clear-filters');
+        clearDocumentFilters.setAttribute('aria-label','Clear document filters');
+        clearDocumentFilters.title = 'Clear filters';
+        clearDocumentFilters.innerHTML = '<i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>';
+        $('documentFilter').insertAdjacentElement('afterend', clearDocumentFilters);
+        clearDocumentFilters.addEventListener('click', syncDocumentStatusMenu);
+    }
     const profileDirty = PrismUI.dirtyForm($('profileForm'));
     const passwordDirty = PrismUI.dirtyForm($('passwordForm'));
     let myHistory = [], historyState = {total:0,page:1}, historySequence = 0;
@@ -53,20 +73,199 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><p>${esc(text)}</p></div>`;
     }
 
+    function syncDocumentStatusMenu() {
+        const filter = $('documentFilter');
+        $('studentDocumentStatusToggle').setAttribute('aria-controls', 'studentDocumentStatusMenu');
+        const selected = filter.options[filter.selectedIndex];
+        $('studentDocumentStatusLabel').textContent = selected?.textContent || 'All statuses';
+        document.querySelectorAll('[data-document-status-option]').forEach(option => {
+            option.setAttribute('aria-selected', String(option.dataset.documentStatusOption === filter.value));
+        });
+    }
+
     const PAGES = {
         dashboard: ['Dashboard', 'Your research and IERB progress at a glance.'],
         progress: ['IERB Progress', ''],
         submit: ['Document Submission', 'Upload requirements for RPMS/IERB review.'],
         documents: ['My Documents', ''],
         notifications: ['Notifications', 'Stay updated on reviews, reminders, and follow-ups.'],
-        calendar: ['Calendar', ''],
+        calendar: ['Personal Calendar', ''],
         profile: ['Profile', 'Manage your permitted personal and account information.'],
+        activity: ['Activity Logs', 'Review actions recorded for your student account.'],
     };
+
+    const dashboardStageDescriptions = [
+        'Submit your research proposal and required forms.',
+        'Your adviser reviews and endorses your proposal.',
+        'Revise your documents based on feedback, then upload the updated files.',
+        'The ethics board reviews your submitted documents.',
+        'Receive your ethics clearance.',
+        'Complete final reporting and close your IERB requirements.',
+    ];
+    let selectedDashboardStage = 0;
+    let selectedProgressStage = 0;
+    let dashboardPercentFrame = 0;
+
+    function animateDashboardPercent(target) {
+        const output = $('studentProgressPercent');
+        const startValue = Number(output.dataset.value || 0);
+        output.dataset.value = String(target);
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            output.textContent = `${target}%`;
+            return;
+        }
+        cancelAnimationFrame(dashboardPercentFrame);
+        const startTime = performance.now();
+        const duration = 850;
+        function tick(now) {
+            const ratio = Math.min(1, (now - startTime) / duration);
+            const eased = 1 - Math.pow(1 - ratio, 3);
+            output.textContent = `${Math.round(startValue + (target - startValue) * eased)}%`;
+            if (ratio < 1) dashboardPercentFrame = requestAnimationFrame(tick);
+        }
+        dashboardPercentFrame = requestAnimationFrame(tick);
+    }
+
+    function renderDashboardStageDetail(index, stageIndex) {
+        const host = $('studentProgressDetail');
+        const stageNumber = index + 1;
+        const stageName = labelForStage(STAGES[index]);
+        const done = !loadErrors.progress && Boolean(myRecord) && (stageNumber < stageIndex || stageIndex === STAGES.length);
+        const current = !loadErrors.progress && Boolean(myRecord) && stageNumber === stageIndex && stageIndex < STAGES.length;
+        const state = loadErrors.progress ? 'Progress unavailable' : done ? 'Completed' : current ? 'In progress' : 'Coming up';
+        const copy = loadErrors.progress ? 'Your IERB stage details could not be loaded. Please try again shortly.'
+            : current && myRecord?.requirements && myRecord.requirements !== 'None'
+                ? `Current requirement: ${myRecord.requirements}` : dashboardStageDescriptions[index];
+
+        const text = document.createElement('div');
+        const title = document.createElement('b');
+        title.textContent = `Stage ${stageNumber}: ${stageName} · ${state}`;
+        const description = document.createElement('p');
+        description.textContent = copy;
+        text.append(title, description);
+        const button = document.createElement('button');
+        button.className = 'student-ierb-details-button';
+        button.type = 'button';
+        button.innerHTML = 'View details <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>';
+        button.addEventListener('click', () => go('progress'));
+        host.replaceChildren(text, button);
+    }
+
+    function renderDashboardProgress(stageIndex, progress, status) {
+        const unavailable = loadErrors.progress;
+        const title = $('studentProgressHeading');
+        const chip = $('studentProgressStatus');
+        title.textContent = unavailable ? 'Progress unavailable' : myRecord
+            ? `${stageIndex ? `Stage ${stageIndex} of ${STAGES.length}: ` : ''}${labelForStage(myRecord.stage)}` : 'No IERB record yet';
+        const statusText = unavailable ? 'Unavailable' : status;
+        chip.querySelector('span').textContent = statusText;
+        chip.classList.remove('is-on-track', 'is-pending', 'is-delayed', 'is-neutral');
+        const statusClass = statusText.toLowerCase().replace(/\s+/g, '-');
+        chip.classList.add(['on-track', 'pending', 'delayed'].includes(statusClass) ? `is-${statusClass}` : 'is-neutral');
+
+        const track = $('studentProgressTrack');
+        const fill = $('studentProgressFill');
+        if (unavailable) {
+            track.removeAttribute('aria-valuenow');
+            track.setAttribute('aria-valuetext', 'Unavailable');
+            fill.style.width = '0%';
+            $('studentProgressPercent').textContent = '—';
+        } else {
+            track.setAttribute('aria-valuenow', String(progress));
+            track.removeAttribute('aria-valuetext');
+            fill.style.width = `${progress}%`;
+            animateDashboardPercent(progress);
+        }
+
+        const list = $('studentProgressSteps');
+        list.replaceChildren();
+        const selectedIndex = Math.min(Math.max(selectedDashboardStage, 0), STAGES.length - 1);
+        STAGES.forEach((stage, index) => {
+            const number = index + 1;
+            const done = !unavailable && Boolean(myRecord) && (number < stageIndex || stageIndex === STAGES.length);
+            const current = !unavailable && Boolean(myRecord) && number === stageIndex && stageIndex < STAGES.length;
+            const state = done ? 'completed' : current ? 'current' : 'upcoming';
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `student-ierb-step${done ? ' is-done' : ''}${current ? ' is-current' : ''}${index === selectedIndex ? ' is-selected' : ''}`;
+            button.setAttribute('aria-label', `Stage ${number}: ${labelForStage(stage)} (${state})`);
+            button.setAttribute('aria-pressed', String(index === selectedIndex));
+            const dot = document.createElement('span');
+            dot.className = 'student-ierb-step-dot';
+            dot.textContent = done ? '✓' : String(number);
+            const label = document.createElement('span');
+            label.className = 'student-ierb-step-label';
+            label.textContent = labelForStage(stage);
+            button.append(dot, label);
+            item.append(button);
+            list.append(item);
+        });
+        renderDashboardStageDetail(selectedIndex, stageIndex);
+    }
+
+    $('studentProgressSteps').addEventListener('click', event => {
+        const button = event.target.closest('.student-ierb-step');
+        if (!button) return;
+        selectedDashboardStage = [...$('studentProgressSteps').querySelectorAll('.student-ierb-step')].indexOf(button);
+        const stageIndex = myRecord ? STAGES.indexOf(myRecord.stage) + 1 : 0;
+        $('studentProgressSteps').querySelectorAll('.student-ierb-step').forEach((step, index) => {
+            const selected = index === selectedDashboardStage;
+            step.classList.toggle('is-selected', selected);
+            step.setAttribute('aria-pressed', String(selected));
+        });
+        renderDashboardStageDetail(selectedDashboardStage, stageIndex);
+    });
+
+    function updateProgressStageDetail(index) {
+        const target = $('progressStageDetail');
+        const number = Math.max(0, Math.min(STAGES.length - 1, Number(index) || 0));
+        const stageKey = STAGES[number];
+        const stageIndex = myRecord ? STAGES.indexOf(myRecord.stage) + 1 : 0;
+        const state = loadErrors.progress ? 'Unavailable' : myRecord && (number + 1 < stageIndex || stageIndex === STAGES.length)
+            ? 'Completed' : myRecord && number + 1 === stageIndex ? 'In progress' : 'Upcoming';
+        target.replaceChildren();
+        const label = document.createElement('span'); label.textContent = `Stage ${number + 1}`;
+        const name = document.createElement('strong'); name.textContent = progressStageNames[number];
+        const description = document.createElement('span');
+        description.textContent = loadErrors.progress ? 'Stage details are unavailable.'
+            : state === 'In progress' ? number === 1 ? 'The IERB reviews your protocol for ethical soundness and may send comments.'
+                : myRecord?.requirements && myRecord.requirements !== 'None' ? `Current requirement: ${myRecord.requirements}` : dashboardStageDescriptions[number]
+                : dashboardStageDescriptions[number];
+        target.append(label, name, description);
+    }
+
+    $('stageList').addEventListener('click', event => {
+        const button = event.target.closest('.stage-card[data-progress-stage]');
+        if (!button) return;
+        selectedProgressStage = Number(button.dataset.progressStage);
+        $('stageList').querySelectorAll('.stage-card').forEach((stage, index) => {
+            const selected = index === selectedProgressStage;
+            stage.classList.toggle('selected', selected);
+            stage.setAttribute('aria-pressed', String(selected));
+        });
+        updateProgressStageDetail(selectedProgressStage);
+    });
+    $('stageList').addEventListener('keydown', event => {
+        if (!['Enter', ' '].includes(event.key)) return;
+        const card = event.target.closest('.stage-card[data-progress-stage]');
+        if (!card) return;
+        event.preventDefault(); card.click();
+    });
 
     function go(page) {
         const active = PAGES[page] ? page : 'dashboard';
         const meta = PAGES[active];
         document.querySelectorAll('.portal-page').forEach(x => x.classList.toggle('active', x.dataset.section === active));
+        if (active === 'submit') {
+            const submitPage = document.querySelector('.portal-page[data-section="submit"]');
+            submitPage?.classList.remove('submit-page-entering');
+            if (submitPage) {
+                void submitPage.offsetWidth;
+                submitPage.classList.add('submit-page-entering');
+                window.setTimeout(() => submitPage.classList.remove('submit-page-entering'), 500);
+            }
+        }
         document.querySelectorAll('#portalNav [data-page]').forEach(button => {
             const current = button.dataset.page === active;
             button.closest('li').classList.toggle('active', current);
@@ -78,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('pageTitle').textContent = meta[0];
         $('pageSubtitle').textContent = meta[1];
         $('pageSubtitle').hidden = !meta[1];
+        if (active === 'activity') loadStudentActivity();
         if (window.location.hash !== '#' + active) history.replaceState(null, '', '#' + active);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -136,6 +336,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let activityRequest = 0;
+    async function loadStudentActivity(page = 1) {
+        const requestId = ++activityRequest;
+        const host = $('studentActivityList');
+        const count = $('studentActivityCount');
+        const pager = $('studentActivityPagination');
+        host.setAttribute('aria-busy', 'true');
+        host.replaceChildren(Object.assign(document.createElement('p'), { className: 'student-activity-empty', textContent: 'Loading activity…' }));
+        try {
+            const data = await PrismUI.request(`audit_api.php?action=list&page=${page}`);
+            if (requestId !== activityRequest) return;
+            const entries = Array.isArray(data.entries) ? data.entries : [];
+            PrismUI.pagination(pager, count, { ...data, total: data.total ?? entries.length }, loadStudentActivity, 'entries');
+            if ((Number(data.total) || entries.length) <= Math.max(1, Number(data.limit) || 10)) pager.replaceChildren();
+            host.replaceChildren();
+            if (!entries.length) {
+                host.append(Object.assign(document.createElement('p'), { className: 'student-activity-empty', textContent: 'No activity has been recorded for your account yet.' }));
+                return;
+            }
+            entries.forEach(entry => {
+                const item = document.createElement('article'); item.className = 'student-activity-item';
+                const heading = document.createElement('header');
+                const title = document.createElement('strong'); title.textContent = entry.actionLabel || entry.action || 'Account activity';
+                const time = document.createElement('time'); time.textContent = fmt(entry.at);
+                heading.append(title, time); item.append(heading);
+                if (entry.details) { const details = document.createElement('p'); details.textContent = entry.details; item.append(details); }
+                if (entry.reason) { const reason = document.createElement('p'); reason.className = 'student-activity-reason'; reason.textContent = `Reason: ${entry.reason}`; item.append(reason); }
+                host.append(item);
+            });
+        } catch (error) {
+            if (requestId !== activityRequest) return;
+            count.textContent = 'Activity unavailable'; pager.replaceChildren();
+            host.replaceChildren(Object.assign(document.createElement('p'), { className: 'student-activity-empty is-error', textContent: error.message || 'Could not load activity logs.' }));
+        } finally { if (requestId === activityRequest) host.setAttribute('aria-busy', 'false'); }
+    }
+
     // ------------------------------------------------------------------
     // Rendering
     // ------------------------------------------------------------------
@@ -154,46 +390,91 @@ document.addEventListener('DOMContentLoaded', () => {
         const dashboardProtocolCode = myRecord?.protocolCode || '';
         $('dashboardProtocolCode').textContent = dashboardProtocolCode;
         $('dashboardProtocol').hidden = !dashboardProtocolCode;
-        $('dashboardStageValue').textContent = stageText;
-        $('dashboardProgressPercent').textContent = loadErrors.progress ? 'Unavailable' : `${progress}%`;
-        $('dashboardProgressBar').style.width = loadErrors.progress ? '0%' : `${progress}%`;
-        if (loadErrors.progress) {
-            $('dashboardProgressTrack').removeAttribute('aria-valuenow');
-            $('dashboardProgressTrack').setAttribute('aria-valuetext', 'Unavailable');
-        } else {
-            $('dashboardProgressTrack').setAttribute('aria-valuenow', progress);
-            $('dashboardProgressTrack').removeAttribute('aria-valuetext');
-        }
-        $('dashboardStatusValue').textContent = status;
-        $('dashboardPendingValue').textContent = loadErrors.progress ? 'Unavailable' : pendingCount;
-        $('dashboardSubmissionValue').textContent = loadErrors.documents ? 'Unavailable' : `${dashboardDocumentTotal} ${dashboardDocumentTotal === 1 ? 'document' : 'documents'}`;
-        $('dashboardSubmissionStatus').textContent = loadErrors.documents ? 'Document status could not be loaded.' : latestDoc ? `Latest: ${latestDoc.workflowState || latestDoc.reviewStatus}` : '';
-        $('dashboardSubmissionStatus').hidden = !loadErrors.documents && !latestDoc;
-        $('studentCurrentDocument').textContent = loadErrors.documents ? 'Unable to load your latest submission.' : latestDoc?.originalName || '';
-        $('studentCurrentDocument').hidden = !loadErrors.documents && !latestDoc?.originalName;
-        $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : latestDoc?.workflowState || latestDoc?.reviewStatus || 'No review yet';
-        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer remarks could not be loaded.' : latestDoc?.rpmsReturnReason || latestDoc?.reviewRemarks || '';
-        $('studentReviewRemarks').hidden = !loadErrors.documents && !latestDoc?.rpmsReturnReason && !latestDoc?.reviewRemarks;
+        renderDashboardProgress(stageIndex, progress, status);
+        const pendingCard = $('dashboardPendingCard');
+        const pendingIcon = $('dashboardPendingIcon');
+        pendingCard.classList.toggle('is-clear', !loadErrors.progress && pendingCount === 0);
+        pendingCard.classList.toggle('is-pending', !loadErrors.progress && pendingCount > 0);
+        pendingCard.classList.toggle('is-unavailable', loadErrors.progress);
+        pendingIcon.className = `dashboard-pending-icon fa-solid ${loadErrors.progress || pendingCount > 0 ? 'fa-triangle-exclamation' : 'fa-circle-check'}`;
+        $('dashboardPendingTitle').textContent = loadErrors.progress ? 'Pending requirements unavailable'
+            : pendingCount === 0 ? 'You have no pending requirements'
+                : `${pendingCount} pending requirement${pendingCount === 1 ? '' : 's'}`;
+        $('dashboardPendingDescription').textContent = loadErrors.progress
+            ? 'Your progress could not be loaded. Please try again shortly.'
+            : pendingCount === 0 ? "You're all caught up. Tap to review past requirements."
+                : 'Tap to review the requirements and actions still needed.';
+        $('dashboardSubmissionValue').innerHTML = loadErrors.documents ? 'Unavailable' : dashboardDocumentTotal
+            ? `${dashboardDocumentTotal} <small>${dashboardDocumentTotal === 1 ? 'document' : 'documents'}</small>` : 'Nothing uploaded yet';
+        $('dashboardSubmissionAction').textContent = loadErrors.documents ? 'View document status' : dashboardDocumentTotal ? 'Open my documents' : 'Submit a document';
+        $('studentCurrentDocument').textContent = loadErrors.documents ? 'Your submissions could not be loaded.' : latestDoc
+            ? `${latestDoc.documentType || latestDoc.originalName} · ${latestDoc.stageLabel || latestDoc.stage || 'Research submission'}`
+            : 'Submit your first requirement to start your review.';
+        const submissionTag = $('dashboardSubmissionStatus');
+        submissionTag.textContent = loadErrors.documents ? 'Status unavailable' : latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        submissionTag.hidden = !loadErrors.documents && !latestDoc;
+        const reviewState = latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : !latestDoc ? 'No review yet'
+            : /pending adviser review|under review/i.test(reviewState) ? 'In review' : reviewState;
+        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer updates could not be loaded.' : latestDoc
+            ? latestDoc.rpmsReturnReason || latestDoc.reviewRemarks || ( /pending adviser review|under review/i.test(reviewState)
+                ? 'Your adviser is reviewing your document.' : 'Your adviser will review any new submission.')
+            : 'Your adviser will review once you submit a document.';
+        const reviewTag = $('studentReviewTag');
+        reviewTag.textContent = latestDoc && /pending adviser review|under review/i.test(reviewState) ? 'Waiting on adviser' : '';
+        reviewTag.hidden = !reviewTag.textContent;
 
         const unread = unreadNotifications;
+        $('studentNotificationValue').textContent = loadErrors.notifications ? 'Unavailable' : unread ? `${unread} new` : 'All caught up';
+        $('studentNotificationSummary').textContent = loadErrors.notifications ? 'Notifications could not be loaded.' : unread
+            ? (myNotifications[0]?.message || 'You have unread notifications.') : 'You have no new notifications.';
+        $('studentNotificationTag').textContent = unread ? `${unread} unread` : '';
+        $('studentNotificationTag').hidden = loadErrors.notifications || !unread;
         $('navBadge').textContent = loadErrors.notifications ? '!' : unread;
         $('navBadge').hidden = !loadErrors.notifications && !unread;
         $('navBadge').title = loadErrors.notifications ? 'Notifications unavailable' : `${unread} unread notifications`;
 
         $('currentStage').textContent = loadErrors.progress ? 'Unavailable' : myRecord ? labelForStage(myRecord.stage) : 'No record yet';
-        $('progressRing').style.background = `conic-gradient(var(--accent-pink) ${progress}%, var(--bg-color) 0)`;
+        $('progressStageNumber').textContent = loadErrors.progress ? 'Stage unavailable' : myRecord
+            ? `Stage ${stageIndex} of ${STAGES.length}` : 'No IERB stage assigned yet';
+        const hasPendingRequirement = Boolean(myRecord?.requirements && myRecord.requirements !== 'None');
+        const actionStatus = $('progressActionStatus');
+        actionStatus.classList.toggle('is-pending', hasPendingRequirement || myRecord?.status === 'Delayed');
+        actionStatus.classList.toggle('is-unavailable', loadErrors.progress || !myRecord);
+        actionStatus.querySelector('i').className = loadErrors.progress || !myRecord || hasPendingRequirement || myRecord?.status === 'Delayed'
+            ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+        actionStatus.querySelector('span').textContent = loadErrors.progress ? 'Your current requirements could not be loaded.'
+            : !myRecord ? 'No current IERB record is available.'
+                : hasPendingRequirement ? `Pending requirement: ${myRecord.requirements}`
+                    : myRecord.status === 'Delayed' ? 'Your progress is delayed. Please check with your adviser.'
+                        : 'Nothing is needed from you right now.';
+        $('progressResearchTitle').textContent = myRecord?.research || 'Not recorded';
+        $('progressResearchTitle').classList.toggle('is-missing', !myRecord?.research);
+        $('progressProtocolCode').textContent = myRecord?.protocolCode || 'Not recorded';
+        $('progressProtocolCode').classList.toggle('is-missing', !myRecord?.protocolCode);
+        $('progressRing').style.setProperty('--progress-value', `${progress}%`);
         const progressText = document.createElement('b');
         progressText.textContent = loadErrors.progress ? 'N/A' : `${progress}%`;
-        $('progressRing').replaceChildren(progressText);
+        const progressLabel = document.createElement('span');
+        progressLabel.className = 'progress-ring-label';
+        progressLabel.textContent = 'complete';
+        $('progressRing').replaceChildren(progressText, progressLabel);
 
+        selectedProgressStage = myRecord ? Math.max(0, stageIndex - 1) : 0;
         $('stageList').innerHTML = loadErrors.progress ? empty('Unable to load your IERB progress. Please try again.') : STAGES.map((s, i) => {
             const cls = i + 1 < stageIndex ? 'complete' : i + 1 === stageIndex ? 'current' : '';
             const icon = i + 1 < stageIndex ? 'fa-circle-check' : 'fa-circle';
-            return `<div class="stage-card ${cls}"${cls==='current'?' aria-current="step"':''}><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>Stage ${i + 1}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(labelForStage(s))}</span></div>`;
+            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(progressStageNames[i])}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(s)}</span></button>`;
         }).join('');
+        $('stageList').querySelectorAll('.stage-card').forEach((card, index) => {
+            const selected = index === selectedProgressStage;
+            card.classList.toggle('selected', selected);
+            card.setAttribute('aria-pressed', String(selected));
+        });
+        updateProgressStageDetail(selectedProgressStage);
 
         $('completedRequirements').innerHTML = loadErrors.progress ? empty('Completed requirements are unavailable.') : myRecord && stageIndex > 1
-            ? `<div class="list-item"><i class="fa-solid fa-circle-check"></i><div><strong>Stages 1-${stageIndex - 1}</strong><span>Completed</span></div></div>`
+            ? `<div class="list-item"><i class="fa-solid fa-circle-check"></i><div><strong>${stageIndex - 1 === 1 ? 'Stage 1' : `Stages 1-${stageIndex - 1}`}</strong><span>Completed</span></div></div>`
             : empty('No completed requirements yet.');
         $('pendingRequirements').innerHTML = loadErrors.progress ? empty('Pending requirements are unavailable.') : myRecord && myRecord.requirements && myRecord.requirements !== 'None'
             ? `<div class="list-item"><i class="fa-regular fa-clock"></i><div><strong>${esc(myRecord.requirements)}</strong><span>Pending</span></div></div>`
@@ -201,22 +482,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderHistory();
 
-        $('recentSubmissions').innerHTML = loadErrors.documents ? empty('Unable to load recent submissions. Please try again.') : myDocuments.slice(0, 4).map(docItem).join('') || empty('No submissions yet.');
-        $('studentRecentNotifications').innerHTML = loadErrors.notifications ? empty('Unable to load notifications. Please try again.') : myNotifications.slice(0, 3).map(n => noticeItem(n, false)).join('') || empty('You have no notifications.');
-
-        // Principal Investigator indicator + Protocol Code (feature requests
-        // 10-11). Kept intentionally simple: a small badge that reveals the
-        // code on click, plus a prominent card shown ahead of the raw file
-        // list once a protocol code has actually been assigned.
-        const piIndicator = $('principalIndicator');
-        const protocolReveal = $('protocolCodeReveal');
-        if (myRecord && myRecord.isPrincipalInvestigator) {
-            piIndicator.hidden = false;
-        } else {
-            piIndicator.hidden = true;
-            protocolReveal.hidden = true;
-        }
-
+        $('recentSubmissions').innerHTML = loadErrors.documents
+            ? empty('Unable to load recent submissions. Please try again.')
+            : myDocuments.slice(0, 4).map(recentSubmissionItem).join('') || `<div class="student-recent-empty">
+                <span class="student-recent-empty-icon"><i class="fa-regular fa-file" aria-hidden="true"></i></span>
+                <strong>No submissions yet</strong>
+                <p>When you upload a document, it will show up here with its status.</p>
+                <button type="button" class="student-recent-empty-action" data-go="submit"><i class="fa-solid fa-upload" aria-hidden="true"></i> Submit a document</button>
+            </div>`;
         const protocolCard = $('protocolCodeCard');
         if (myRecord && myRecord.protocolCode) {
             $('protocolCodeValue').textContent = myRecord.protocolCode;
@@ -235,29 +508,53 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<div class="list-item"><i class="fa-solid fa-file-lines"></i><div><strong>${esc(d.documentType)}</strong><span>${esc(d.originalName)}${version} &middot; ${fmt(d.uploadedAt)} &middot; ${esc(state)}</span></div></div>`;
     }
 
+    function recentSubmissionItem(d) {
+        const state = d.workflowState || d.reviewStatus || 'Submitted';
+        const pending = /pending|review/i.test(state) && !/submitted to rpms/i.test(state);
+        const needsAction = /needs revision|returned/i.test(state);
+        const extension = (String(d.originalName || '').split('.').pop() || 'FILE').toUpperCase();
+        const extensionClass = /^(DOC|DOCX|RTF|ODT)$/.test(extension) ? 'is-doc' : 'is-pdf';
+        const version = Number(d.versionNo || 1) > 1 ? ` · v${Number(d.versionNo)}` : '';
+        return `<a class="student-recent-item" href="document_preview.php?id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">
+            <span class="student-recent-file ${extensionClass}">${esc(extension)}</span>
+            <span class="student-recent-body"><strong>${esc(d.documentType || 'Document')}</strong><span>${esc(d.originalName || 'Uploaded file')}${version}</span></span>
+            <span class="student-recent-side"><span class="student-recent-status ${pending ? 'is-pending' : needsAction ? 'is-action' : 'is-submitted'}"><i class="fa-regular ${pending ? 'fa-clock' : needsAction ? 'fa-circle-xmark' : 'fa-circle-check'}" aria-hidden="true"></i>${esc(state)}</span><time>${esc(recentAge(d.uploadedAt))}</time></span>
+            <i class="fa-solid fa-chevron-right student-recent-arrow" aria-hidden="true"></i>
+        </a>`;
+    }
+
     function renderHistory() {
         if(loadErrors.progress||loadErrors.history)historyPager.error();else historyPager.render(historyState);
         $('progressHistory').innerHTML = loadErrors.progress || loadErrors.history ? empty('Unable to load progress history. Please try again.') : myHistory.length
-            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${esc(h.stage)} - ${esc(h.status)}</strong><span>${esc(h.note || 'Updated by RPMS')} &bull; ${esc(fmt(h.created_at))} &bull; ${esc(h.actor || 'System')}</span></div></div>`).join('')
+            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-circle" aria-hidden="true"></i><div><div class="progress-history-title"><strong>${esc(labelForStage(h.stage))}</strong><span class="progress-history-status ${/delay|pending|revision|return/i.test(h.status || '') ? 'is-attention' : ''}">${esc(h.status || 'On track')}</span></div><span class="progress-history-note">${esc(h.note || 'Updated by RPMS')}</span><span class="progress-history-meta">${esc(fmt(h.created_at))} · ${esc(h.actor || 'System')}</span></div></div>`).join('')
             : empty('No progress history yet.');
     }
 
     function renderDocs() {
         const filter = $('documentFilter').value;
         const docs = documentHistory.records;
+        const previewOnly = documentUiPreview && !docs.length && !filter && !documentSearch.value.trim();
+        const shownDocs = previewOnly ? [{preview:true,originalName:'Research Proposal.pdf',documentType:'Research Proposal',stageLabel:'Stage 1',uploadedAt:new Date().toISOString(),workflowState:'Pending Adviser Review',reviewStatus:'Under Review',versionNo:1}] : docs;
         if (!loadErrors.documents) docPager.render(documentHistory);
+        if (previewOnly) documentCount.textContent = 'UI preview: 1 sample result (not uploaded)';
         if(!loadErrors.documents)PrismUI.statusPills($('studentDocumentPills'),[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']],$('documentFilter'),documentHistory.counts||{});
-        $('documentRows').innerHTML = loadErrors.documents ? `<tr><td colspan="6">${empty('Unable to load your documents. Please try again.')}</td></tr>` : docs.map(d => `<tr>
-            <td><strong>${esc(d.originalName)}</strong>${Number(d.versionNo || 1) > 1 ? `<small> v${Number(d.versionNo)}</small>` : ''}<small>Document ID: ${esc(d.id)} &bull; ${esc(d.stageLabel || d.stage)}</small></td>
-            <td>${esc(d.documentType)}</td>
-            <td>${fmt(d.uploadedAt)}</td>
-            <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}${d.rpmsSubmittedAt ? `<small>Submitted: ${esc(fmt(d.rpmsSubmittedAt))}</small>` : ''}</td>
-            <td>${esc(d.rpmsReturnReason ? 'RPMS return reason: '+d.rpmsReturnReason : d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
-            <td><div class="student-document-actions"><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
-                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a><button type="button" class="action-btn" data-version-history="${esc(d.id)}">Version history</button>${d.actions?.uploadRevision ? `<button type="button" class="action-btn prism-btn-primary" data-upload-revision="${esc(d.id)}">Upload Revision</button>` : ''}</div></td>
-        </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
-        document.querySelectorAll('.student-document-actions').forEach(host => PrismUI.actionMenu(host, {primary:host.querySelector('[data-formal-submit]')}));
-        if(!loadErrors.documents) [...$('documentRows').rows].forEach((row,index)=>{if(row.cells.length===6)PrismUI.compactRecord(row,0,3,5,[['Adviser review decision',docs[index]?.reviewStatus]]);});
+        syncDocumentStatusMenu();
+        const list = $('studentDocumentList');
+        if (loadErrors.documents) {
+            list.innerHTML = empty('Unable to load your documents. Please try again.');
+            return;
+        }
+        list.innerHTML = shownDocs.length ? shownDocs.map(d => {
+            if (d.preview) {
+                const date = new Date(d.uploadedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+                return `<article class="student-document-card pending student-document-preview-card"><div class="student-document-card-main"><div class="student-document-identity"><strong>${esc(d.originalName)} <small class="student-document-preview-label">UI preview · sample only</small></strong><span>${esc(d.documentType)} · ${esc(d.stageLabel)}</span><button type="button" class="student-document-details-toggle" aria-expanded="false"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i> Details &amp; remarks</button></div><div class="student-document-date"><span>Submitted</span><strong>${esc(date)}</strong></div><div class="student-document-state">${PrismUI.badge(d.workflowState,{small:true})}</div><div class="student-document-actions"><span class="action-btn" aria-disabled="true">Preview only</span></div></div><div class="student-document-details" hidden><div><span>Adviser remarks</span><strong>Sample feedback for layout preview.</strong></div><div><span>Version</span><strong>v1</strong></div><div><span>Document ID</span><strong>Sample only</strong></div></div></article>`;
+            }
+            const state = d.workflowState || d.reviewStatus || 'Submitted';
+            const stateClass = /needs revision/i.test(state) ? 'needs' : /returned/i.test(state) ? 'returned' : /pending|review/i.test(state) ? 'pending' : /submitted to rpms|approved/i.test(state) ? 'submitted' : 'neutral';
+            const remark = d.rpmsReturnReason ? `RPMS return reason: ${d.rpmsReturnReason}` : d.reviewRemarks || (state === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet');
+            const date = d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'Date unavailable';
+            return `<article class="student-document-card ${stateClass}"><div class="student-document-card-main"><div class="student-document-identity"><strong>${esc(d.originalName)}${Number(d.versionNo || 1) > 1 ? ` <small>v${Number(d.versionNo)}</small>` : ''}</strong><span>${esc(d.documentType)} · ${esc(d.stageLabel || d.stage)}</span><button type="button" class="student-document-details-toggle" aria-expanded="false"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i> Details &amp; remarks</button></div><div class="student-document-date"><span>Submitted</span><strong>${esc(date)}</strong></div><div class="student-document-state">${PrismUI.badge(state,{small:true})}</div><div class="student-document-actions"><a class="action-btn" href="document_preview.php?id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener"><i class="fa-regular fa-eye" aria-hidden="true"></i> View</a><div class="student-document-menu-wrap"><button type="button" class="action-btn student-document-menu-toggle" aria-label="More actions"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><div class="student-document-menu"><a href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}"><i class="fa-solid fa-download" aria-hidden="true"></i> Download</a><button type="button" data-version-history="${esc(d.id)}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Version history</button>${d.actions?.uploadRevision ? `<button type="button" data-upload-revision="${esc(d.id)}"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Upload revision</button>` : ''}</div></div></div></div><div class="student-document-details" hidden><div><span>Adviser remarks</span><strong>${esc(remark)}</strong></div><div><span>Version</span><strong>v${Number(d.versionNo || 1)}${Number(d.versionNo || 1)>1 ? ' · Earlier versions kept' : ''}</strong></div><div><span>Document ID</span><strong>${esc(d.id)}</strong></div>${d.rpmsSubmittedAt ? `<div><span>Submitted to RPMS</span><strong>${esc(fmt(d.rpmsSubmittedAt))}</strong></div>` : ''}</div></article>`;
+        }).join('') : `<div class="student-documents-empty"><span><i class="fa-regular fa-file" aria-hidden="true"></i></span><strong>${filter ? 'No documents match this view' : "You haven't uploaded anything yet"}</strong><p>${filter ? 'Try a different status or clear your search.' : 'Upload your first requirement. Your adviser will review it, and the status will show here.'}</p></div>`;
     }
 
     function noticeItem(n, includeAction = true) {
@@ -266,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const notificationCenter = PrismNotifications.mount({ list: $('notificationList'), count: $('studentNotificationCount'),
-        pager: $('studentNotificationPagination'), markAll: $('markAllRead'), onChange: refreshNotificationOverview });
+        pager: $('studentNotificationPagination'), markAll: $('markAllRead'), studentCenter: true, onChange: refreshNotificationOverview });
     async function refreshNotificationOverview() {
         const data = await loadNotifications();
         myNotifications = data.records; unreadNotifications = data.unread ?? 0;
@@ -287,12 +584,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fillSubmissionRecord() {
-        $('submissionResearchTitle').value = myRecord?.research || '';
-        $('submissionResearchGroup').value = myRecord?.groupId || '';
-        $('submissionStudentId').value = myRecord?.studentId || 'Not recorded';
-        $('submissionStage').value = myRecord?.stageLabel || myRecord?.stage || 'Not recorded';
-        $('submissionAdviser').value = myRecord?.adviser || 'Unassigned';
-        $('submissionProtocol').value = myRecord?.protocolCode || 'No protocol code yet.';
+        $('submissionResearchTitle').textContent = myRecord?.research || 'Not recorded';
+        $('submissionResearchGroup').textContent = myRecord?.groupId || 'Not recorded';
+        $('submissionStudentId').textContent = myRecord?.studentId || 'Not recorded';
+        $('submissionStage').textContent = myRecord?.stageLabel || myRecord?.stage || 'Not recorded';
+        $('submissionAdviser').textContent = myRecord?.adviser || 'Unassigned';
+        $('submissionProtocol').textContent = myRecord?.protocolCode || 'No protocol code yet';
     }
 
     async function refreshAll() {
@@ -318,6 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadErrors = { progress: progress.error, history: progress.historyError, documents: documents.error, notifications: notifications.error };
         render();
         fillSubmissionRecord();
+        updateSubmissionReadiness();
         const unavailable = Object.entries(loadErrors).filter(([, failed]) => failed).map(([area]) => area === 'history' ? 'progress history' : area);
         $('studentDashboardState').textContent = unavailable.length ? `Unable to load ${unavailable.join(', ')}. Please refresh to try again.` : '';
         $('studentDashboardState').setAttribute('aria-busy', 'false');
@@ -347,18 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('prism:documents-changed', refreshAll);
     setNavigation(false);
 
-    document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
-    document.querySelectorAll('#portalNav button').forEach(b => b.addEventListener('click', () => go(b.dataset.page)));
-
-    $('principalIndicator').addEventListener('click', () => {
-        const reveal = $('protocolCodeReveal');
-        if (reveal.hidden) {
-            reveal.textContent = myRecord?.protocolCode
-                ? `Protocol Code: ${myRecord.protocolCode}`
-                : 'No protocol code yet.';
-        }
-        reveal.hidden = !reveal.hidden;
-    });
+    document.querySelectorAll('#portalNav button[data-page]').forEach(b => b.addEventListener('click', () => go(b.dataset.page)));
 
     // ------------------------------------------------------------------
     // Document submission
@@ -368,14 +655,98 @@ document.addEventListener('DOMContentLoaded', () => {
     $('submissionForm').before(revisionNotice);
     const cancelRevision = document.createElement('button'); cancelRevision.type='button'; cancelRevision.textContent='Cancel revision'; cancelRevision.className='action-btn'; cancelRevision.hidden=true;
     revisionNotice.after(cancelRevision);
-    function clearRevision() { revisionDocument=null; revisionNotice.hidden=true; cancelRevision.hidden=true; $('documentType').disabled=false; $('documentFile').multiple=true; }
+    const submissionForm = $('submissionForm');
+    const submissionType = $('documentType');
+    const submissionFile = $('documentFile');
+    const submissionDropzone = $('submissionDropzone');
+    const submissionNotes = $('documentNotes');
+    const submissionButton = submissionForm.querySelector('[type="submit"]');
+    const maxUploadBytes = 20 * 1024 * 1024;
+
+    function updateSubmissionReadiness() {
+        const hasType = Boolean(submissionType.value);
+        const files = [...submissionFile.files];
+        const invalid = files.find(file => {
+            const extension = file.name.split('.').pop().toLowerCase();
+            return !['pdf', 'docx'].includes(extension) || file.size > maxUploadBytes;
+        });
+        const hasFiles = files.length > 0 && !invalid;
+        const fileSelection = $('uploadSelection');
+        fileSelection.replaceChildren();
+        files.forEach((file, index) => {
+            const card = document.createElement('div'); card.className = 'submission-file-card';
+            const badge = document.createElement('span'); badge.className = 'submission-file-badge';
+            badge.textContent = file.name.split('.').pop().toUpperCase();
+            const meta = document.createElement('span'); meta.className = 'submission-file-meta';
+            const name = document.createElement('strong'); name.textContent = file.name;
+            const size = document.createElement('small'); size.textContent = file.size < 1024 * 1024
+                ? `${Math.ceil(file.size / 1024)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+            meta.append(name, size);
+            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'submission-file-remove';
+            remove.setAttribute('aria-label', `Remove ${file.name}`); remove.textContent = 'Remove';
+            remove.addEventListener('click', () => {
+                const remaining = new DataTransfer();
+                [...submissionFile.files].forEach((selected, selectedIndex) => { if (selectedIndex !== index) remaining.items.add(selected); });
+                submissionFile.files = remaining.files;
+                submissionFile.dispatchEvent(new Event('change', { bubbles: true }));
+                submissionDropzone.focus();
+            });
+            card.append(badge, meta, remove); fileSelection.append(card);
+        });
+        $('submissionTypeReady').classList.toggle('is-ready', hasType);
+        $('submissionFileReady').classList.toggle('is-ready', hasFiles);
+        $('submissionStepType').classList.toggle('is-done', hasType);
+        $('submissionStepType').classList.toggle('is-active', !hasType);
+        $('submissionStepFile').classList.toggle('is-done', hasFiles);
+        $('submissionStepFile').classList.toggle('is-active', hasType && !hasFiles);
+        $('submissionStepNotes').classList.toggle('is-active', hasType && hasFiles);
+        submissionButton.disabled = !(hasType && hasFiles);
+
+        const hint = $('submissionSubmitHint');
+        if (invalid) {
+            hint.textContent = invalid.size > maxUploadBytes ? `${invalid.name} is over the 20 MB file limit.` : `${invalid.name} is not a PDF or DOCX file.`;
+            hint.classList.add('has-error');
+            $('uploadResults').textContent = hint.textContent;
+        } else {
+            hint.classList.remove('has-error');
+            hint.textContent = hasType && hasFiles ? 'Everything is ready. Submit your document for review.'
+                : !hasType ? 'Choose a document type to continue.' : 'Upload a file to continue.';
+        }
+
+        const previous = myRecord && hasType ? myDocuments.filter(doc => doc.documentType === submissionType.value && doc.stage === myRecord.stage) : [];
+        const latestVersion = previous.reduce((max, doc) => Math.max(max, Number(doc.versionNo) || 1), 0);
+        const versionNote = $('submissionVersionNote');
+        versionNote.hidden = !previous.length || Boolean(revisionDocument);
+        if (!versionNote.hidden) versionNote.textContent = `You've already submitted this for the current stage. This upload will be saved as version ${latestVersion + 1}; earlier versions stay in your history.`;
+
+        submissionDropzone.classList.toggle('has-file', hasFiles);
+        submissionNotes && ($('submissionNotesCount').textContent = `${submissionNotes.value.length} / 500`);
+    }
+
+    function clearRevision() {
+        revisionDocument=null; revisionNotice.hidden=true; cancelRevision.hidden=true;
+        submissionType.disabled=false; submissionFile.multiple=true; updateSubmissionReadiness();
+    }
     cancelRevision.addEventListener('click',clearRevision);
+    submissionType.addEventListener('change', updateSubmissionReadiness);
+    submissionFile.addEventListener('change', updateSubmissionReadiness);
+    submissionNotes.addEventListener('input', updateSubmissionReadiness);
+    submissionDropzone.addEventListener('click', () => submissionFile.click());
+    submissionDropzone.addEventListener('dragover', event => { event.preventDefault(); submissionDropzone.classList.add('is-dragging'); });
+    submissionDropzone.addEventListener('dragleave', () => submissionDropzone.classList.remove('is-dragging'));
+    submissionDropzone.addEventListener('drop', event => {
+        event.preventDefault(); submissionDropzone.classList.remove('is-dragging');
+        if (!event.dataTransfer?.files?.length) return;
+        submissionFile.files = event.dataTransfer.files;
+        submissionFile.dispatchEvent(new Event('change', { bubbles: true }));
+    });
     document.addEventListener('prism:upload-revision',event=>{
         const doc=event.detail; if(!doc?.actions?.uploadRevision)return;
         revisionDocument=doc; $('documentType').value=doc.documentType; $('documentType').disabled=true; $('documentFile').multiple=false;
         revisionNotice.textContent=`Upload a NEW revision of ${doc.originalName} (version ${doc.versionNo}, ${doc.stageLabel || doc.stage}). The submitted file and history will be kept. ${doc.rpmsReturnReason || doc.reviewRemarks || ''}`;
-        revisionNotice.hidden=false; cancelRevision.hidden=false; $('documentFile').focus();
+        revisionNotice.hidden=false; cancelRevision.hidden=false; updateSubmissionReadiness(); $('documentFile').focus();
     });
+    updateSubmissionReadiness();
     $('submissionForm').addEventListener('submit', async event => {
         event.preventDefault();
         const files = $('documentFile').files;
@@ -406,6 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toast(e.message);
         } finally {
             release();
+            updateSubmissionReadiness();
         }
     });
 
@@ -432,16 +804,78 @@ document.addEventListener('DOMContentLoaded', () => {
             loadErrors.documents = false; renderDocs();
         } catch(e) { if(sequence!==documentSequence)return; loadErrors.documents = true; renderDocs(); docPager.error(); }
     }
-    $('documentFilter').addEventListener('change', () => {docPager.reset();refreshDocuments();});
+    $('documentFilter').addEventListener('change', () => {syncDocumentStatusMenu();docPager.reset();refreshDocuments();});
     const documentSearchReload=PrismUI.debounce(()=>{docPager.reset();refreshDocuments();});
     documentSearch.addEventListener('input',documentSearchReload);
     documentSort.addEventListener('change',()=>{docPager.reset();refreshDocuments();});
-    $('documentRows').addEventListener('click', e => {
+    document.addEventListener('click', e => {
+        const statusToggle = e.target.closest('#studentDocumentStatusToggle');
+        if (statusToggle) {
+            const menu = $('studentDocumentStatusMenu');
+            const open = menu.hidden;
+            menu.hidden = !open;
+            statusToggle.setAttribute('aria-expanded', String(open));
+            return;
+        }
+        const statusOption = e.target.closest('[data-document-status-option]');
+        if (statusOption) {
+            $('documentFilter').value = statusOption.dataset.documentStatusOption;
+            $('documentFilter').dispatchEvent(new Event('change', { bubbles: true }));
+            $('studentDocumentStatusMenu').hidden = true;
+            $('studentDocumentStatusToggle').setAttribute('aria-expanded', 'false');
+            $('studentDocumentStatusToggle').focus();
+            return;
+        }
+        if (!e.target.closest('.student-document-status-select')) {
+            $('studentDocumentStatusMenu').hidden = true;
+            $('studentDocumentStatusToggle').setAttribute('aria-expanded', 'false');
+        }
+        const dismissClear = e.target.closest('[data-dismiss-clear]');
+        if (dismissClear) { dismissClear.closest('.student-document-clear')?.remove(); return; }
+        const goButton = e.target.closest('[data-go]');
+        if (goButton && !goButton.hasAttribute('data-page')) { e.preventDefault(); go(goButton.dataset.go); return; }
+        const howToggle = e.target.closest('#studentDocumentsHowToggle');
+        if (howToggle) {
+            const how = $('studentDocumentsHow');
+            const collapsed = how.classList.toggle('is-collapsed');
+            howToggle.textContent = collapsed ? 'Show' : 'Hide';
+            howToggle.setAttribute('aria-expanded', String(!collapsed));
+            return;
+        }
+        const detailToggle = e.target.closest('.student-document-details-toggle');
+        if (detailToggle) {
+            const card = detailToggle.closest('.student-document-card');
+            const details = card.querySelector('.student-document-details');
+            details.hidden = !details.hidden;
+            detailToggle.setAttribute('aria-expanded', String(!details.hidden));
+            detailToggle.classList.toggle('is-open', !details.hidden);
+            return;
+        }
+        const menuToggle = e.target.closest('.student-document-menu-toggle');
+        if (menuToggle) {
+            const menu = menuToggle.nextElementSibling;
+            document.querySelectorAll('.student-document-menu.is-open').forEach(item => { if (item !== menu) item.classList.remove('is-open'); });
+            menu.classList.toggle('is-open');
+            return;
+        }
+        if (!e.target.closest('.student-document-menu-wrap')) document.querySelectorAll('.student-document-menu.is-open').forEach(item => item.classList.remove('is-open'));
+        if (e.target.closest('#copyProtocolCode')) {
+            const code = $('protocolCodeValue').textContent;
+            if (code && navigator.clipboard) navigator.clipboard.writeText(code).then(() => toast('Protocol code copied'));
+            return;
+        }
         const history=e.target.closest('[data-version-history]'); if(history){PrismUI.showVersions(history.dataset.versionHistory);return;}
         const button = e.target.closest('[data-upload-revision]');
         if(!button)return;
-        const doc = documentHistory.records.find(d=>String(d.id)===button.dataset.uploadRevision);
+        const doc = [...documentHistory.records,...myDocuments].find(d=>String(d.id)===button.dataset.uploadRevision);
         if(doc)PrismUI.uploadRevision(doc);
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !$('studentDocumentStatusMenu').hidden) {
+            $('studentDocumentStatusMenu').hidden = true;
+            $('studentDocumentStatusToggle').setAttribute('aria-expanded', 'false');
+            $('studentDocumentStatusToggle').focus();
+        }
     });
 
 
@@ -485,23 +919,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             toast(error.message || 'Could not reach the server to change your password.');
         } finally {release();}
-    });
-
-    // Profile photo is a local-only preview in this build (not persisted server-side).
-    $('previewProfileImage').addEventListener('click', () => $('profileImageInput').click());
-    $('profileImageInput').addEventListener('change', () => {
-        const file = $('profileImageInput').files[0];
-        if (!file) return;
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast('Choose a JPG, PNG, or WebP image.'); return; }
-        const reader = new FileReader();
-        reader.onload = () => {
-            $('profileImagePreview').src = reader.result;
-        };
-        reader.readAsDataURL(file);
-    });
-    $('removeProfileImage').addEventListener('click', () => {
-        $('profileImageInput').value = '';
-        $('profileImagePreview').src = 'assets/images/default-avatar.svg';
     });
 
     $('themeToggle').addEventListener('click', () => {

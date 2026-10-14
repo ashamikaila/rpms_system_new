@@ -119,7 +119,8 @@ if ($action === 'save') {
     $requirementsProvided = array_key_exists('requirements', $data);
     $requirements = $requirementsProvided ? trim((string)$data['requirements']) : null;
     $protocolCode = trim((string)($data['protocolCode'] ?? ''));
-    $isPrincipal = !empty($data['isPrincipalInvestigator']) ? 1 : 0;
+    $isPrincipal = array_key_exists('isPrincipalInvestigator', $data)
+        ? (!empty($data['isPrincipalInvestigator']) ? 1 : 0) : null;
     if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
     $reason = trim((string)($data['reason'] ?? ''));
 
@@ -134,11 +135,10 @@ if ($action === 'save') {
         // Advisers may only add/assign their OWN students -- they cannot
         // hand a student to another adviser, whatever adviserId was sent.
         $adviserId = (int)$ownAdviserId;
-        // Protocol code and Principal Investigator status are RPMS-office
-        // decisions (item 12: admin has full authority over these), not
-        // something an adviser can self-assign while editing a record.
+        // Protocol codes remain RPMS-office decisions. Advisers may mark a
+        // newly created student as PI, but cannot change that designation later.
         $protocolCode = null;
-        $isPrincipal = null;
+        if ($id > 0) $isPrincipal = null;
         $stage = 'Stage 1';
         $status = 'On Track';
     }
@@ -215,8 +215,8 @@ if ($action === 'save') {
                 $stage = (string)$before['stage'];
                 $status = (string)$before['status'];
             }
-            // Advisers can't touch protocol code / PI status (set to null
-            // above) -- keep whatever was already on the record.
+            // Advisers cannot change protocol code or PI status on existing
+            // records; retain the stored values when either field is null.
             $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
             $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
             try {

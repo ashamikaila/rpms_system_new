@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Students needing attention | PRISM preview</title>
+    <script>
+        try {
+            if (localStorage.getItem('prismTheme') === 'dark') {
+                document.documentElement.classList.add('dark-theme');
+            }
+        } catch (_) {}
+    </script>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <link rel="stylesheet" href="assets/css/prism-ui.css">
+    <link rel="stylesheet" href="assets/css/prism-tokens.css">
+    <link rel="stylesheet" href="assets/css/prism-components.css">
+    <link rel="stylesheet" href="assets/css/prism-workspace.css">
+    <link rel="stylesheet" href="assets/css/dashboard-overview.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body.preview-page { min-height:100vh; }
+        .preview-main { width:min(1080px,100%); min-height:100vh; margin:0 auto; padding:42px 24px; }
+        .preview-note { margin:0 0 20px; color:var(--prism-muted); font-size:14px; }
+        .preview-page .dashboard-attention { margin:0; }
+        .preview-page .prism-attn-item { align-items:center; }
+        .preview-page .prism-attn-main strong { font-size:15px; }
+        .preview-page .prism-attn-reasons { padding-left:0; }
+        .preview-page .prism-sub { line-height:1.45; }
+        @media(max-width:600px) {
+            .preview-main { padding:24px 14px; }
+            .preview-page .prism-attn-item { align-items:flex-start; }
+        }
+    </style>
+</head>
+<body class="prism-workspace admin-shell dashboard-page preview-page">
+<main class="main-content preview-main">
+    <p class="preview-note">Preview only — these sample records are fictional and do not come from student data.</p>
+    <section class="content">
+        <div class="content-box dashboard-attention">
+            <div class="table-header attention-header">
+                <div class="attention-title">
+                    <span class="attention-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+                    <h3>Students needing attention</h3>
+                </div>
+                <a class="attention-link" href="#" onclick="return false">Open IERB Progress <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <ul class="prism-attn-list">
+                <li class="prism-attn-item sev-3">
+                    <div class="prism-attn-main">
+                        <strong>PR-2026-014</strong>
+                        <span class="prism-sub">Sample Research Group A · Adviser: Sample Adviser</span>
+                        <ul class="prism-attn-reasons">
+                            <li>Submission is delayed</li>
+                            <li>No recent activity</li>
+                        </ul>
+                    </div>
+                    <div class="prism-badges">
+                        <span class="prism-badge tone-warning"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>Revision</span></span>
+                        <span class="prism-badge tone-danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Delayed</span></span>
+                    </div>
+                </li>
+                <li class="prism-attn-item sev-2">
+                    <div class="prism-attn-main">
+                        <strong>PR-2026-021</strong>
+                        <span class="prism-sub">Sample Research Group B · Adviser: Sample Adviser</span>
+                        <ul class="prism-attn-reasons">
+                            <li>Waiting too long for adviser review</li>
+                        </ul>
+                    </div>
+                    <div class="prism-badges">
+                        <span class="prism-badge tone-info"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>Ethics Review</span></span>
+                        <span class="prism-badge tone-warning"><i class="fa-solid fa-clock" aria-hidden="true"></i><span>Pending</span></span>
+                    </div>
+                </li>
+            </ul>
+            <p class="prism-sub">Showing 2 of 5.</p>
+        </div>
+    </section>
+    <p class="preview-note" style="margin-top:28px">Research stage layout preview — example counts only.</p>
+    <section class="content" aria-label="Research stage distribution and calendar preview">
+        <div class="pipeline-card dashboard-stage">
+            <div class="pipeline-heading">
+                <span class="pipeline-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v7l-4-2v-5Z"/></svg></span>
+                <div>
+                    <h3 class="pipeline-title">Research stage distribution</h3>
+                    <p class="dashboard-stage-help">Select a stage to filter the list</p>
+                </div>
+            </div>
+            <div class="pipeline-steps">
+                <button type="button" class="step-item" aria-pressed="false"><span>Initial submission</span><strong><b>10</b><small>groups</small></strong></button>
+                <button type="button" class="step-item" aria-pressed="false"><span>Ethics review</span><strong><b>1</b><small>group</small></strong></button>
+                <button type="button" class="step-item delayed" aria-pressed="false"><span>Revision phase</span><strong><b>1</b><small>delayed</small></strong></button>
+                <button type="button" class="step-item approved" aria-pressed="false"><span>Board approved</span><strong><b>1</b><small>group</small></strong></button>
+            </div>
+        </div>
+        <div class="content-box calendar-box stage-preview-calendar">
+            <div class="calendar-top-bar">
+                <div class="cal-nav"><button type="button" class="cal-nav-btn" aria-label="Previous month" disabled><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button><span class="month-year">October 2026</span><button type="button" class="cal-nav-btn" aria-label="Next month" disabled><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></div>
+                <div class="cal-view-selector"><button type="button" class="view-btn active" aria-pressed="true">Month</button><button type="button" class="view-btn" aria-pressed="false">Year</button></div>
+            </div>
+            <div class="calendar-grid">
+                <div class="day-name">Sun</div><div class="day-name">Mon</div><div class="day-name">Tue</div><div class="day-name">Wed</div><div class="day-name">Thu</div><div class="day-name">Fri</div><div class="day-name">Sat</div>
+                <div class="day text-muted">27</div><div class="day text-muted">28</div><div class="day text-muted">29</div><div class="day text-muted">30</div>
+                <div class="day">1</div><div class="day">2</div><div class="day">3</div><div class="day">4</div><div class="day">5</div><div class="day">6</div><div class="day">7</div><div class="day">8</div><div class="day">9</div><div class="day">10</div><div class="day">11</div><div class="day">12</div><div class="day">13</div><div class="day">14</div><div class="day">15</div><div class="day">16</div><div class="day">17</div><div class="day">18</div><div class="day">19</div><div class="day">20</div><div class="day">21</div><div class="day">22</div><div class="day">23</div><div class="day">24</div><div class="day">25</div><div class="day">26</div><div class="day active-day">27</div><div class="day">28</div><div class="day">29</div><div class="day">30</div><div class="day">31</div>
+            </div>
+        </div>
+    </section>
+</main>
+<style>
+    .preview-page .stage-preview-calendar { min-width:0; margin:0; align-self:stretch; }
+    .preview-page .stage-preview-calendar .cal-nav-btn:disabled { cursor:default; opacity:.65; }
+    @media(max-width:600px) { .preview-page .stage-preview-calendar { padding:14px; } }
+</style>
+</body>
+</html>

@@ -5,13 +5,13 @@
  *   audit_api.php?action=list[&studentId=][&action_code=][&override=1][&from=YYYY-MM-DD][&to=YYYY-MM-DD][&q=][&page=]
  *
  * Admins see everything. Advisers only see entries about their own students.
- * Students have no access.
+ * Students can only see entries tied to their own login or current student record.
  */
 
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
 
-$user = api_require_login(['admin', 'adviser']);
+$user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
 
@@ -22,6 +22,14 @@ if ($action === 'list') {
     if ($user['role'] === 'adviser') {
         $where[] = 'l.student_id IN (SELECT s.id FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE a.email = :adv AND s.archived_at IS NULL)';
         $params[':adv'] = $user['email'];
+    } elseif ($user['role'] === 'student') {
+        $where[] = '(l.user_email = :student_email OR l.student_id IN (
+            SELECT s.id FROM students s WHERE s.archived_at IS NULL
+            AND (s.user_id = :student_uid OR (s.email = :profile_email AND s.student_id = :student_ref))))';
+        $params[':student_email'] = $user['email'];
+        $params[':student_uid'] = (int)$user['id'];
+        $params[':profile_email'] = $user['email'];
+        $params[':student_ref'] = $user['ref_id'];
     }
     if ((int)($_GET['studentId'] ?? 0) > 0) {
         $where[] = 'l.student_id = :sid';
@@ -67,25 +75,24 @@ if ($action === 'list') {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    $entries = array_map(fn($r) => [
-        'id' => (int)$r['id'],
-        'at' => $r['created_at'],
-        'action' => $r['action'],
-        'actionLabel' => audit_action_label($r['action']),
-        'actorName' => $r['actor_name'] ?? null,
-        'actorRole' => $r['actor_role'] ?? null,
-        'actorEmail' => $r['user_email'],
-        'entityType' => $r['entity_type'] ?? null,
-        'entityId' => $r['entity_id'] ?? null,
-        'studentId' => $r['student_id'] ? (int)$r['student_id'] : null,
-        'studentName' => $r['student_name'] ?? null,
-        'protocolCode' => $r['protocol_code'] ?? null,
-        'details' => $r['details'],
-        'reason' => $r['reason'] ?? null,
-        'before' => $r['before_value'] ?? null,
-        'after' => $r['after_value'] ?? null,
-        'override' => !empty($r['is_override']),
-    ], $stmt->fetchAll());
+    $entries = array_map(function ($r) use ($user) {
+        $entry = [
+            'id' => (int)$r['id'], 'at' => $r['created_at'], 'action' => $r['action'],
+            'actionLabel' => audit_action_label($r['action']), 'details' => $r['details'],
+            'reason' => $r['reason'] ?? null,
+        ];
+        if ($user['role'] !== 'student') {
+            $entry += [
+                'actorName' => $r['actor_name'] ?? null, 'actorRole' => $r['actor_role'] ?? null,
+                'actorEmail' => $r['user_email'], 'entityType' => $r['entity_type'] ?? null,
+                'entityId' => $r['entity_id'] ?? null, 'studentId' => $r['student_id'] ? (int)$r['student_id'] : null,
+                'studentName' => $r['student_name'] ?? null, 'protocolCode' => $r['protocol_code'] ?? null,
+                'before' => $r['before_value'] ?? null, 'after' => $r['after_value'] ?? null,
+                'override' => !empty($r['is_override']),
+            ];
+        }
+        return $entry;
+    }, $stmt->fetchAll());
 
     json_out(['ok' => true, 'entries' => $entries, 'limit' => $limit, 'offset' => $offset,
         'page' => $page, 'pages' => $pages, 'total' => $total]);
