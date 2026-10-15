@@ -13,8 +13,7 @@ require __DIR__.'/session_browser.php';
 <?php
 if ($authUser['role'] === 'adviser'):
     $prismPortalLinks = [
-        ['research_adviser.php', 'Dashboard'], ['admin_students.php', 'Assigned Students'],
-        ['documents.php', 'Document Reviews'], ['ierbprog.php', 'IERB Progress'],
+        ['research_adviser.php', 'Dashboard'], ['ierbprog.php', 'IERB Progress'],
         ['calendar.php', 'Calendar'],
     ];
 ?>
@@ -25,13 +24,20 @@ if ($authUser['role'] === 'adviser'):
 <a class="prism-nav-home" href="<?= $prismNavEscape($prismNavUrl) ?>" <?= ($prismCurrentPage ?? '') === $prismNavUrl ? 'aria-current="page"' : '' ?>><?= $prismNavEscape($prismNavLabel) ?></a>
 <?php endforeach; ?>
 <div class="portal-nav-dropdown" data-prism-dropdown>
+<button type="button" class="prism-nav-home portal-dropdown-toggle" aria-expanded="false" aria-haspopup="true" <?= in_array($prismCurrentPage ?? '', ['admin_students.php', 'documents.php'], true) ? 'aria-current="page"' : '' ?>><span>Research Management</span><i class="fa-solid fa-chevron-down prism-dropdown-arrow" aria-hidden="true"></i></button>
+<div class="portal-dropdown-menu portal-resources-dropdown" hidden>
+<a class="portal-dropdown-item" href="admin_students.php" <?= ($prismCurrentPage ?? '') === 'admin_students.php' ? 'aria-current="page"' : '' ?>>Assigned Students</a>
+<a class="portal-dropdown-item" href="documents.php" <?= ($prismCurrentPage ?? '') === 'documents.php' ? 'aria-current="page"' : '' ?>>Documents to Review</a>
+</div>
+</div>
+<div class="portal-nav-dropdown" data-prism-dropdown>
 <button type="button" class="prism-nav-home portal-dropdown-toggle" aria-expanded="false" aria-haspopup="true"><span>Research Resources</span><i class="fa-solid fa-chevron-down prism-dropdown-arrow" aria-hidden="true"></i></button>
 <div class="portal-dropdown-menu portal-resources-dropdown" hidden>
 <a class="portal-dropdown-item" href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer">IERB Portal</a>
-<a class="portal-dropdown-item" href="assets/images/sdg.webp" target="_blank" rel="noopener noreferrer">Sustainable Development Goals</a>
-<a class="portal-dropdown-item" href="assets/images/research-agenda-2023-2028.png" target="_blank" rel="noopener noreferrer">Research Agenda</a>
+<a class="portal-dropdown-item" href="#prismResourcesTitle" data-prism-resources-link data-prism-resource-target="prism-sdg-panel">Sustainable Development Goals</a>
+<a class="portal-dropdown-item" href="#prismResourcesTitle" data-prism-resources-link data-prism-resource-target="prism-agenda-panel">Research Agenda</a>
 <div class="portal-dropdown-divider" role="separator"></div>
-<a class="portal-dropdown-item portal-dropdown-scroll" href="research_adviser.php#prismResourcesTitle">View All on Dashboard</a>
+<a class="portal-dropdown-item portal-dropdown-scroll" href="#prismResourcesTitle" data-prism-resources-link>View all resources</a>
 </div>
 </div>
 </nav>
@@ -39,9 +45,10 @@ if ($authUser['role'] === 'adviser'):
 <button class="portal-help" type="button" data-prism-tour aria-label="Quick tour" title="Quick tour"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></button><a class="portal-notification" href="admin_notifications.php" aria-label="Notifications" title="Notifications" <?= ($prismCurrentPage ?? '') === 'admin_notifications.php' ? 'aria-current="page"' : '' ?>><i class="fa-solid fa-bell" aria-hidden="true"></i></a>
 <div class="prism-account-menu">
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Adviser account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>Research Adviser</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
-<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php" <?= ($prismCurrentPage ?? '') === 'account.php' ? 'aria-current="page"' : '' ?>><i class="fa-regular fa-user" aria-hidden="true"></i>My account</a><a href="account.php#activity"><i class="fa-solid fa-list" aria-hidden="true"></i>Activity logs</a><a href="help_support.php"><i class="fa-regular fa-circle-question" aria-hidden="true"></i>Help &amp; Support</a><div class="prism-account-divider" role="separator"></div><a class="prism-account-logout" href="logout.php"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>Log out</a></div>
+<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php" <?= ($prismCurrentPage ?? '') === 'account.php' ? 'aria-current="page"' : '' ?>><i class="fa-regular fa-user" aria-hidden="true"></i>My account</a><a href="account.php#activity"><i class="fa-solid fa-list" aria-hidden="true"></i>Activity logs</a><a href="help_support.php" data-open-support><i class="fa-regular fa-circle-question" aria-hidden="true"></i>Help &amp; Support</a><div class="prism-account-divider" role="separator"></div><a class="prism-account-logout" href="logout.php"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>Log out</a></div>
 </div>
 </div>
+<?php require __DIR__.'/help_support_modal.php'; ?>
 <?php else:
 $prismNavGroups = [
     'Research' => ['Research Management', 'fa-folder-open', [
@@ -97,4 +104,4 @@ $prismNavGroups = [
 <div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php"><i class="fa-regular fa-user" aria-hidden="true"></i>My account</a><a href="account.php#activity"><i class="fa-solid fa-list" aria-hidden="true"></i>Activity logs</a><div class="prism-account-divider" role="separator"></div><a class="prism-account-logout" href="logout.php"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>Log out</a></div>
 </div>
 <?php endif; ?>
-<template data-prism-guide-role="<?= $prismNavEscape($authUser['role']) ?>"></template>
+<template data-prism-guide-role="<?= $prismNavEscape($authUser['role']) ?>" data-prism-guide-user="<?= $prismNavEscape(hash('sha256', ($authUser['role'] ?? '') . '|' . ($authUser['id'] ?? ''))) ?>"></template>
